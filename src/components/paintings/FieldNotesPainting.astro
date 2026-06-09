@@ -1,0 +1,108 @@
+---
+/**
+ * Field Notes — an observation sketch.
+ * A specimen leaf drawn from life: outline and midrib stand still while the
+ * lateral veins trace themselves in, and annotation leaders quietly surface.
+ */
+---
+
+<svg
+  class="painting painting--field"
+  viewBox="0 0 400 400"
+  preserveAspectRatio="xMidYMid slice"
+  role="img"
+  aria-label="A field sketch of a leaf with veins drawing themselves in, annotation leaders, and a small scale bar."
+  fill="none"
+>
+  <!-- faint construction circle -->
+  <circle cx="196" cy="200" r="150" stroke="var(--border-faint)" stroke-width="1" stroke-dasharray="2 8" />
+
+  <!-- leaf -->
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M170 332 C 118 252, 130 138, 212 74 C 286 150, 252 262, 170 332 Z"
+      stroke="var(--ink)" stroke-width="2.4" fill="var(--paper-raised)" fill-opacity="0.6" />
+    <path d="M170 332 C 186 250, 200 158, 211 78" stroke="var(--ink)" stroke-width="2" />
+    <line x1="170" y1="332" x2="164" y2="360" stroke="var(--ink)" stroke-width="2.4" />
+
+    <!-- lateral veins, drawn in sequence -->
+    <g stroke="var(--ink-secondary)" stroke-width="1.4">
+      <path class="vein" style="--d:0s" d="M180 298 C 162 286, 150 280, 144 262" pathLength="1" />
+      <path class="vein" style="--d:0.5s" d="M186 270 C 210 268, 224 262, 232 246" pathLength="1" />
+      <path class="vein" style="--d:1s" d="M190 236 C 168 226, 156 218, 150 200" pathLength="1" />
+      <path class="vein" style="--d:1.5s" d="M196 204 C 220 200, 234 192, 240 176" pathLength="1" />
+      <path class="vein" style="--d:2s" d="M200 168 C 182 158, 172 150, 168 134" pathLength="1" />
+      <path class="vein" style="--d:2.5s" d="M205 140 C 226 134, 236 126, 240 112" pathLength="1" />
+    </g>
+  </g>
+
+  <!-- annotation leaders -->
+  <g class="notes" stroke="var(--ink-faint)" stroke-width="1">
+    <g class="note" style="--d:0s">
+      <circle cx="211" cy="78" r="2.4" fill="var(--ink-faint)" stroke="none" />
+      <path d="M211 78 L304 58 H346" />
+    </g>
+    <g class="note" style="--d:0.9s">
+      <circle cx="240" cy="176" r="2.4" fill="var(--ink-faint)" stroke="none" />
+      <path d="M240 176 L322 150 H360" />
+    </g>
+    <g class="note" style="--d:1.8s">
+      <circle cx="164" cy="360" r="2.4" fill="var(--ink-faint)" stroke="none" />
+      <path d="M164 360 L300 348 H342" />
+    </g>
+  </g>
+
+  <!-- scale bar -->
+  <g stroke="var(--ink-faint)" stroke-width="1.2">
+    <line x1="44" y1="370" x2="124" y2="370" />
+    <path d="M44 366 v8 M64 367 v6 M84 366 v8 M104 367 v6 M124 366 v8" />
+  </g>
+</svg>
+
+<style>
+  .painting {
+    width: 100%;
+    height: 100%;
+  }
+  .vein {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+  .note {
+    opacity: 0.85;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .vein {
+      animation: trace 14s var(--d, 0s) ease-in-out infinite;
+    }
+    .note {
+      animation: surface 14s var(--d, 0s) ease-in-out infinite;
+    }
+    @keyframes trace {
+      0% {
+        stroke-dashoffset: 1;
+      }
+      18%,
+      82% {
+        stroke-dashoffset: 0;
+      }
+      100% {
+        stroke-dashoffset: -1;
+      }
+    }
+    @keyframes surface {
+      0%,
+      30% {
+        opacity: 0;
+      }
+      45%,
+      80% {
+        opacity: 0.85;
+      }
+      96%,
+      100% {
+        opacity: 0;
+      }
+    }
+  }
+</style>

@@ -1,0 +1,156 @@
+---
+import type { Gallery } from '../data/galleries';
+import { galleryUrl, frameTransition } from '../lib/content';
+import Painting from './paintings/Painting.astro';
+
+interface Props {
+  gallery: Gallery;
+  count?: number;
+  articleTitles?: string[];
+}
+
+const { gallery, count, articleTitles = [] } = Astro.props;
+const countLabel =
+  count == null
+    ? `${articleTitles.length} ${articleTitles.length === 1 ? 'piece' : 'pieces'}`
+    : `${count} ${count === 1 ? 'piece' : 'pieces'}`;
+const usesBuiltInFrame = gallery.slug === 'systems';
+---
+
+<a class="frame" href={galleryUrl(gallery.slug)} style={`--aspect:${gallery.aspect}`}>
+  <div
+    class={`frame__mat ${usesBuiltInFrame ? 'frame__mat--built-in-frame' : 'artframe'}`}
+    transition:name={frameTransition(gallery.slug)}
+  >
+    <div class={usesBuiltInFrame ? 'frame__art' : 'artframe__art'}>
+      <Painting slug={gallery.slug} />
+    </div>
+    <div class="frame__preview" aria-hidden="true">
+      <span class="frame__preview-label">Inside</span>
+      {
+        articleTitles.length > 0 ? (
+          <ul class="frame__preview-list">
+            {articleTitles.map((title) => (
+              <li>{title}</li>
+            ))}
+          </ul>
+        ) : (
+          <span class="frame__preview-empty">No articles yet</span>
+        )
+      }
+    </div>
+  </div>
+  <span class="frame__plate">
+    <span class="frame__title">{gallery.title}</span>
+    <span class="frame__meta">
+      {gallery.medium}{countLabel ? <> · <span class="frame__count">{countLabel}</span></> : null}
+    </span>
+  </span>
+</a>
+
+<style>
+  .frame {
+    display: block;
+    text-decoration: none;
+    color: var(--ink);
+    break-inside: avoid;
+    margin-bottom: var(--wall-gap, 1.4rem);
+  }
+
+  /* .frame__mat also carries the global .artframe moulding */
+  .frame__mat {
+    position: relative;
+    aspect-ratio: var(--aspect, 4 / 3);
+    transition:
+      transform var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease);
+  }
+  .frame__mat--built-in-frame {
+    display: grid;
+    background: transparent;
+  }
+  .frame__art {
+    overflow: visible;
+  }
+
+  .frame:hover .frame__mat,
+  .frame:focus-visible .frame__mat {
+    transform: translateY(-3px);
+    --hang: 0 12px 22px -12px rgba(40, 34, 24, 0.4);
+  }
+  .frame:hover .frame__mat--built-in-frame,
+  .frame:focus-visible .frame__mat--built-in-frame {
+    box-shadow: none;
+  }
+  .frame__preview {
+    position: absolute;
+    inset: var(--molding, 0);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    padding: clamp(0.75rem, 4vw, 1rem);
+    color: var(--paper-raised);
+    background:
+      linear-gradient(to top, rgba(23, 19, 14, 0.78), rgba(23, 19, 14, 0.36) 58%, transparent),
+      rgba(23, 19, 14, 0.08);
+    font-family: var(--font-ui);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms var(--ease);
+  }
+  .frame__mat--built-in-frame .frame__preview {
+    inset: 0;
+  }
+  .frame:hover .frame__preview,
+  .frame:focus-visible .frame__preview {
+    opacity: 1;
+  }
+  .frame__preview-label {
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .frame__preview-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.28rem;
+    font-size: clamp(0.78rem, 2.1vw, 0.92rem);
+    line-height: 1.25;
+  }
+  .frame__preview-list li {
+    text-wrap: balance;
+  }
+  .frame__preview-empty {
+    font-size: 0.86rem;
+    color: color-mix(in srgb, var(--paper-raised) 82%, transparent);
+  }
+
+  .frame__plate {
+    display: block;
+    padding-top: 0.7rem;
+  }
+  .frame__title {
+    display: block;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 1.02rem;
+    letter-spacing: -0.01em;
+  }
+  .frame__meta {
+    display: block;
+    font-family: var(--font-ui);
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    margin-top: 0.12em;
+  }
+  .frame:hover .frame__title {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-underline-offset: 0.18em;
+  }
+</style>

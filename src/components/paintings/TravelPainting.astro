@@ -1,0 +1,109 @@
+---
+/**
+ * Travel — a map fragment.
+ * Faint coastline contours, a dotted route with a marker travelling along it,
+ * and a compass rose whose needle gently wavers.
+ */
+---
+
+<svg
+  class="painting painting--travel"
+  viewBox="0 0 320 180"
+  preserveAspectRatio="xMidYMid slice"
+  role="img"
+  aria-label="A fragment of a map: contour lines, a dotted route with a moving marker, and a compass rose."
+  fill="none"
+>
+  <!-- coastline / contours -->
+  <g stroke="var(--ink-faint)" stroke-width="1" stroke-linecap="round" opacity="0.8">
+    <path d="M-4 54 C 50 40, 92 64, 132 50 C 180 34, 220 52, 270 38 C 296 31, 312 36, 324 30" />
+    <path d="M-4 86 C 54 74, 96 96, 140 84 C 188 71, 226 88, 276 76" stroke-dasharray="1 0" opacity="0.6" />
+    <path d="M236 120 a40 40 0 0 1 60 18 M248 132 a26 26 0 0 1 40 12" opacity="0.7" />
+  </g>
+
+  <!-- route -->
+  <path
+    id="route-travel"
+    class="route"
+    d="M40 140 C 92 104, 112 70, 162 82 S 244 44, 290 62"
+    stroke="var(--ink)"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-dasharray="2 7"
+  />
+  <!-- stops -->
+  <g fill="var(--paper-raised)" stroke="var(--ink)" stroke-width="2">
+    <circle cx="40" cy="140" r="4.5" />
+    <circle cx="162" cy="82" r="4" />
+    <circle cx="290" cy="62" r="4.5" />
+  </g>
+  <!-- travelling marker -->
+  <path class="marker" d="M0 -6 L5 0 L0 6 L-5 0 Z" fill="var(--accent)" />
+
+  <!-- compass rose -->
+  <g class="compass" transform="translate(50 142)">
+    <circle r="20" stroke="var(--ink-faint)" stroke-width="1" />
+    <g stroke="var(--ink-faint)" stroke-width="1">
+      <line x1="0" y1="-20" x2="0" y2="-15" />
+      <line x1="0" y1="20" x2="0" y2="15" />
+      <line x1="-20" y1="0" x2="-15" y2="0" />
+      <line x1="20" y1="0" x2="15" y2="0" />
+    </g>
+    <g class="needle">
+      <path d="M0 -16 L5 0 L0 4 L-5 0 Z" fill="var(--ink)" />
+      <path d="M0 16 L5 0 L0 -4 L-5 0 Z" fill="var(--paper-sunk)" stroke="var(--ink-faint)" stroke-width="0.8" />
+    </g>
+  </g>
+</svg>
+
+<style>
+  .painting {
+    width: 100%;
+    height: 100%;
+  }
+  .marker {
+    offset-path: path('M40 140 C 92 104, 112 70, 162 82 S 244 44, 290 62');
+    offset-rotate: 0deg;
+    offset-distance: 0%;
+  }
+  .needle {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .route {
+      animation: dash 2.6s linear infinite;
+    }
+    .marker {
+      animation: travel 9s ease-in-out infinite;
+    }
+    .needle {
+      animation: waver 7s ease-in-out infinite;
+    }
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -18;
+      }
+    }
+    @keyframes travel {
+      0%,
+      6% {
+        offset-distance: 0%;
+      }
+      94%,
+      100% {
+        offset-distance: 100%;
+      }
+    }
+    @keyframes waver {
+      0%,
+      100% {
+        transform: rotate(-4deg);
+      }
+      50% {
+        transform: rotate(4deg);
+      }
+    }
+  }
+</style>

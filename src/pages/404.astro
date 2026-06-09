@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Gallery not found" description="This room appears to be empty.">
+  <section class="lost measure">
+    <p class="eyebrow">№404</p>
+    <h1 class="lost__title">There's nothing at this address.</h1>
+    <p class="lost__body">
+      The page you were looking for has moved, or perhaps it was never here.
+    </p>
+    <div class="lost__doors">
+      <a href="/">Back to the homepage</a>
+      <a href="/map/">Open the Map of Curiosity</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .lost {
+    padding-block: clamp(4rem, 12vw, 8rem);
+    text-align: center;
+  }
+  .lost__title {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: clamp(1.8rem, 1.2rem + 3vw, 2.9rem);
+    line-height: 1.1;
+    margin: 0.6rem 0 0;
+  }
+  .lost__body {
+    margin: 1rem auto 0;
+    max-width: 38ch;
+    color: var(--ink-secondary);
+    font-size: 1.1rem;
+    line-height: 1.6;
+  }
+  .lost__doors {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.8rem 2rem;
+    margin-top: 2rem;
+    font-family: var(--font-ui);
+    font-size: 0.92rem;
+  }
+</style>

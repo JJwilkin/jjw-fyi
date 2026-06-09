@@ -1,0 +1,36 @@
+---
+/**
+ * Dispatches to the painting for a given gallery. Keeps callers from importing
+ * eight components and switching by hand.
+ */
+import type { GallerySlug } from '../../data/galleries';
+import SystemsPainting from './SystemsPainting.astro';
+import PhotographyPainting from './PhotographyPainting.astro';
+import NaturePainting from './NaturePainting.astro';
+import PhilosophyPainting from './PhilosophyPainting.astro';
+import ProjectsPainting from './ProjectsPainting.astro';
+import WritingPainting from './WritingPainting.astro';
+import TravelPainting from './TravelPainting.astro';
+import FieldNotesPainting from './FieldNotesPainting.astro';
+
+interface Props {
+  slug: GallerySlug;
+}
+
+const { slug } = Astro.props;
+
+const paintings = {
+  systems: SystemsPainting,
+  photography: PhotographyPainting,
+  nature: NaturePainting,
+  philosophy: PhilosophyPainting,
+  projects: ProjectsPainting,
+  writing: WritingPainting,
+  travel: TravelPainting,
+  'field-notes': FieldNotesPainting,
+} as const;
+
+const Painting = paintings[slug];
+---
+
+<Painting />

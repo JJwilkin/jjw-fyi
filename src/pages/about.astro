@@ -1,0 +1,86 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="About"
+  description="About Joshua Wilkinson and this site — who keeps it, and why it is built the way it is."
+>
+  <article class="about measure">
+    <header class="about__head">
+      <p class="eyebrow">About</p>
+      <h1 class="about__title">About this site</h1>
+    </header>
+
+    <div class="prose flow">
+      <p class="lead">
+        I'm Joshua Wilkinson. By trade I build systems — databases, the distributed machinery
+        around them, and the unglamorous plumbing that keeps software upright under load. But a
+        person is more than their trade, and this is the rest of it.
+      </p>
+
+      <p>
+        I made this because the usual containers didn't fit. A portfolio flattens you into a list
+        of deliverables. A blog turns everything into a chronological feed, where a photograph of a
+        riverbank and a note on write-amplification scroll past with equal weight and equal
+        forgettability. Neither captured what I actually wanted to keep: the <em>connections</em> —
+        the way a problem in storage engineering rhymes with a question about cities, or a walk
+        ends up explaining something I'd been stuck on at a terminal.
+      </p>
+
+      <p>
+        So it's organised by interest instead. Eight sections, each a standing curiosity:
+        <a href="/galleries/systems/">systems</a>, <a href="/galleries/photography/">photography</a>,
+        <a href="/galleries/nature/">nature</a>, <a href="/galleries/philosophy/">philosophy</a>,
+        <a href="/galleries/projects/">projects</a>, <a href="/galleries/writing/">writing</a>,
+        <a href="/galleries/travel/">travel</a>, and <a href="/galleries/field-notes/">field notes</a>.
+        None of them is meant to dominate; the point is that they sit side by side.
+      </p>
+
+      <p>
+        If you'd rather see the shape of the whole thing at once, the
+        <a href="/map/">Map of Curiosity</a> draws the threads between pieces — which is, more than any
+        single article, the thing I'd want you to leave with.
+      </p>
+
+      <h2>How to read it</h2>
+      <p>
+        Wander, don't sprint. The homepage shows the eight sections; pick one to open it. Once
+        you're reading an article, everything else gets out of the way — longer pieces are set for
+        comfort, not for show. At the foot of each one you'll find its connections to other
+        sections; follow them sideways rather than top to bottom.
+      </p>
+
+      <h2>Colophon</h2>
+      <p>
+        Body text is set in <span class="u-ui">Source Serif&nbsp;4</span>; headings, labels and
+        navigation in <span class="u-ui">Inter</span>. The palette is paper and ink, chosen so that
+        nothing competes with the words or the images. The site is built with
+        <a href="https://astro.build">Astro</a> and ships almost no JavaScript: it is static, fast,
+        and meant to load instantly and outlive its frameworks. The drawings on the homepage are
+        hand-made SVGs — they move only enough to reward a second glance, and hold still entirely if
+        you prefer reduced motion.
+      </p>
+
+      <h2>Say hello</h2>
+      <p>
+        Corrections, arguments, and recommendations of things to look at are all welcome. Write to
+        me at <a href="mailto:hello@jjw.fyi">hello@jjw.fyi</a>.
+      </p>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .about {
+    padding-top: clamp(1.8rem, 5vw, 3rem);
+  }
+  .about__head {
+    margin-bottom: clamp(1.4rem, 4vw, 2.2rem);
+  }
+  .about__title {
+    font-size: clamp(2rem, 1.4rem + 2.6vw, 2.9rem);
+    line-height: 1.06;
+    margin: 0.3rem 0 0;
+  }
+</style>

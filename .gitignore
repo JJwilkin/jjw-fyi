@@ -1,0 +1,26 @@
+# build output
+dist/
+.astro/
+
+# dependencies
+node_modules/
+
+# environment
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# os / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# scratch — frame-cropping candidates & montages
+scripts/_*

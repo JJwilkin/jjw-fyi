@@ -1,0 +1,80 @@
+---
+/**
+ * Projects — a blueprint that evolves.
+ * A machined plate draws itself onto a faint grid, with dimension lines and a
+ * title block. The linework traces on, holds, and erases in a slow loop.
+ */
+---
+
+<svg
+  class="painting painting--projects"
+  viewBox="0 0 400 300"
+  preserveAspectRatio="xMidYMid slice"
+  role="img"
+  aria-label="An engineering blueprint of a drilled plate that slowly draws itself, with dimension lines and a title block."
+  fill="none"
+>
+  <defs>
+    <pattern id="grid-proj" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M20 0 H0 V20" stroke="var(--border-faint)" stroke-width="0.7" fill="none" />
+    </pattern>
+  </defs>
+  <rect width="400" height="300" fill="url(#grid-proj)" opacity="0.7" />
+
+  <!-- dimension lines -->
+  <g stroke="var(--ink-faint)" stroke-width="1" stroke-linecap="round">
+    <path d="M88 246 H292" />
+    <path d="M88 242 v8 M292 242 v8" />
+    <path d="M88 246 l8 -3 M88 246 l8 3 M292 246 l-8 -3 M292 246 l-8 3" />
+    <path d="M64 72 V214" />
+    <path d="M60 72 h8 M60 214 h8" />
+    <path d="M64 72 l-3 8 M64 72 l3 8 M64 214 l-3 -8 M64 214 l3 -8" />
+  </g>
+
+  <!-- the part, drawing itself -->
+  <rect class="ink-draw" style="--d:0s" x="88" y="72" width="204" height="142" rx="10"
+    pathLength="1" stroke="var(--ink)" stroke-width="2.4" fill="var(--paper-raised)" fill-opacity="0.5" />
+  <circle class="ink-draw" style="--d:1.4s" cx="142" cy="120" r="15" pathLength="1" stroke="var(--ink)" stroke-width="2" />
+  <circle class="ink-draw" style="--d:2s" cx="238" cy="168" r="15" pathLength="1" stroke="var(--ink)" stroke-width="2" />
+
+  <!-- centre marks -->
+  <g stroke="var(--ink-faint)" stroke-width="1">
+    <path d="M142 110 v20 M132 120 h20" />
+    <path d="M238 158 v20 M228 168 h20" />
+  </g>
+
+  <!-- title block -->
+  <g class="ink-draw" style="--d:2.6s" stroke="var(--ink-secondary)" stroke-width="1.4">
+    <rect x="262" y="234" width="118" height="46" pathLength="1" fill="var(--paper-raised)" />
+    <path d="M262 256 H380 M310 234 V280" pathLength="1" />
+  </g>
+</svg>
+
+<style>
+  .painting {
+    width: 100%;
+    height: 100%;
+  }
+  .ink-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ink-draw {
+      animation: trace 11s var(--d, 0s) ease-in-out infinite;
+    }
+    @keyframes trace {
+      0% {
+        stroke-dashoffset: 1;
+      }
+      30%,
+      78% {
+        stroke-dashoffset: 0;
+      }
+      100% {
+        stroke-dashoffset: -1;
+      }
+    }
+  }
+</style>

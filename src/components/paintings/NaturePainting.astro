@@ -1,0 +1,100 @@
+---
+/**
+ * Nature — gentle environmental motion.
+ * A line-drawn landscape: layered hills, a low sun, reeds that sway, birds
+ * that drift across the sky.
+ */
+---
+
+<svg
+  class="painting painting--nature"
+  viewBox="0 0 320 200"
+  preserveAspectRatio="xMidYMid slice"
+  role="img"
+  aria-label="A drawn landscape of low hills under a quiet sun, with reeds swaying and birds drifting past."
+  fill="none"
+>
+  <circle cx="72" cy="60" r="20" stroke="var(--ink-faint)" stroke-width="1.6" />
+
+  <!-- drifting birds -->
+  <g class="flock" stroke="var(--ink-faint)" stroke-width="1.4" stroke-linecap="round">
+    <path class="bird" style="--d:0s" d="M0 0 q6 -5 12 0 q6 -5 12 0" transform="translate(40 46)" />
+    <path class="bird" style="--d:-3s" d="M0 0 q5 -4 10 0 q5 -4 10 0" transform="translate(120 34)" />
+    <path class="bird" style="--d:-6.5s" d="M0 0 q5 -4 10 0 q5 -4 10 0" transform="translate(80 62)" />
+  </g>
+
+  <!-- hills -->
+  <path d="M0 132 C 70 108, 130 120, 200 104 C 250 92, 290 104, 320 96 L320 200 L0 200 Z"
+    fill="var(--paper-sunk)" stroke="var(--ink-faint)" stroke-width="1.4" />
+  <path d="M0 168 C 80 146, 150 160, 220 150 C 270 144, 300 154, 320 150 L320 200 L0 200 Z"
+    fill="var(--paper-raised)" stroke="var(--ink)" stroke-width="2" />
+
+  <!-- reeds -->
+  <g class="reeds" stroke="var(--ink-secondary)" stroke-width="2" stroke-linecap="round">
+    <path class="reed" style="--d:0s" d="M40 196 C 38 176, 44 164, 40 150" />
+    <path class="reed" style="--d:-1.2s" d="M52 196 C 54 178, 48 168, 54 156" />
+    <path class="reed" style="--d:-0.6s" d="M30 196 C 28 182, 32 172, 28 162" />
+    <path class="reed" style="--d:-1.8s" d="M64 196 C 66 180, 60 170, 66 162" />
+  </g>
+</svg>
+
+<style>
+  .painting {
+    width: 100%;
+    height: 100%;
+  }
+  .reed,
+  .bird {
+    transform-box: fill-box;
+  }
+  .reed {
+    transform-origin: bottom center;
+  }
+  .bird {
+    transform-origin: center;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reed {
+      animation: sway 4.5s var(--d) ease-in-out infinite;
+    }
+    .flock {
+      animation: drift 26s linear infinite;
+    }
+    .bird {
+      animation: flap 2.4s var(--d) ease-in-out infinite;
+    }
+    @keyframes sway {
+      0%,
+      100% {
+        transform: rotate(-2.5deg);
+      }
+      50% {
+        transform: rotate(2.5deg);
+      }
+    }
+    @keyframes flap {
+      0%,
+      100% {
+        transform: scaleY(1);
+      }
+      50% {
+        transform: scaleY(0.6);
+      }
+    }
+    @keyframes drift {
+      from {
+        transform: translateX(-30px);
+        opacity: 0;
+      }
+      8%,
+      88% {
+        opacity: 1;
+      }
+      to {
+        transform: translateX(220px);
+        opacity: 0;
+      }
+    }
+  }
+</style>

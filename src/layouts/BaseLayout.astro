@@ -1,0 +1,60 @@
+---
+import '@fontsource-variable/source-serif-4';
+import '@fontsource-variable/inter';
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Widen the body class for the wall / map. */
+  width?: 'reading' | 'wide' | 'full';
+  /** og:type — 'article' for article pages. */
+  type?: 'website' | 'article';
+}
+
+const {
+  title,
+  description = 'Writing, systems, photography, nature, travel and field notes by Joshua Wilkinson.',
+  width = 'reading',
+  type = 'website',
+} = Astro.props;
+
+const siteName = 'Joshua Wilkinson';
+const fullTitle = title ? `${title} · Joshua Wilkinson` : siteName;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#f8f6f1" />
+
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={siteName} />
+    <meta name="twitter:card" content="summary" />
+
+    <ClientRouter />
+  </head>
+  <body data-width={width}>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Header transition:persist />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <Footer transition:persist />
+  </body>
+</html>

@@ -1,0 +1,96 @@
+---
+/**
+ * Philosophy — concepts rearranging themselves.
+ * Three primitive ideas (circle, square, triangle) orbit a core on their own
+ * arms, slowly changing their relation to one another.
+ */
+---
+
+<svg
+  class="painting painting--philosophy"
+  viewBox="0 0 400 400"
+  preserveAspectRatio="xMidYMid slice"
+  role="img"
+  aria-label="A circle, square and triangle slowly orbiting a central point, rearranging their relationships."
+  fill="none"
+>
+  <!-- guide rings -->
+  <circle cx="200" cy="200" r="116" stroke="var(--border-faint)" stroke-width="1" stroke-dasharray="2 7" />
+  <circle cx="200" cy="200" r="150" stroke="var(--border-faint)" stroke-width="1" stroke-dasharray="2 7" />
+
+  <!-- arms -->
+  <g class="arm" style="--dur:64s; --dir:1">
+    <line x1="200" y1="200" x2="200" y2="84" stroke="var(--ink-faint)" stroke-width="1.4" />
+    <circle class="shape" cx="200" cy="84" r="22" stroke="var(--ink)" stroke-width="2.4" fill="var(--paper-raised)" />
+  </g>
+
+  <g class="arm" style="--dur:88s; --dir:-1">
+    <line x1="200" y1="200" x2="332" y2="200" stroke="var(--ink-faint)" stroke-width="1.4" />
+    <rect class="shape" x="310" y="178" width="44" height="44" rx="2" stroke="var(--ink)" stroke-width="2.4" fill="var(--paper-raised)" />
+  </g>
+
+  <g class="arm" style="--dur:104s; --dir:1">
+    <line x1="200" y1="200" x2="120" y2="296" stroke="var(--ink-faint)" stroke-width="1.4" />
+    <path class="shape" d="M120 270 L146 312 L94 312 Z" stroke="var(--ink)" stroke-width="2.4" fill="var(--paper-raised)" stroke-linejoin="round" />
+  </g>
+
+  <!-- core -->
+  <circle cx="200" cy="200" r="7" fill="var(--accent)" />
+  <circle class="halo" cx="200" cy="200" r="14" stroke="var(--accent)" stroke-width="1.4" />
+</svg>
+
+<style>
+  .painting {
+    width: 100%;
+    height: 100%;
+  }
+  .arm {
+    transform-box: view-box;
+    transform-origin: 200px 200px;
+  }
+  .shape {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .halo {
+    transform-box: view-box;
+    transform-origin: 200px 200px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .arm {
+      animation: orbit var(--dur) linear infinite;
+    }
+    /* arms tagged --dir:-1 orbit the other way */
+    .arm[style*='--dir:-1'] {
+      animation-direction: reverse;
+    }
+    .shape {
+      animation: counter 30s linear infinite;
+    }
+    .halo {
+      animation: pulse 6s ease-in-out infinite;
+    }
+    @keyframes orbit {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    @keyframes counter {
+      to {
+        transform: rotate(-360deg);
+      }
+    }
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: 0.5;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.9;
+        transform: scale(1.25);
+      }
+    }
+  }
+</style>

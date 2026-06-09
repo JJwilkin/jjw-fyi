@@ -1,0 +1,460 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { galleries } from '../data/galleries';
+import { getArticles, articleUrl, galleryUrl } from '../lib/content';
+
+const articles = await getArticles();
+
+/* ---- layout geometry (deterministic radial layout) -------------------- */
+const W = 1100;
+const H = 880;
+const cx = 550;
+const cy = 430;
+const Rg = 250; // section ring radius
+const Re = 122; // article reach beyond its section node
+const DEG = Math.PI / 180;
+
+interface Node {
+  id: string;
+  kind: 'gallery' | 'article';
+  x: number;
+  y: number;
+  label: string;
+  href: string;
+  slug: string;
+  inner: { x: number; y: number }; // a point toward centre, for label placement
+}
+
+const galleryNodes: (Node & { ang: number })[] = galleries.map((g, i) => {
+  const ang = (-90 + i * 45) * DEG;
+  const x = cx + Rg * Math.cos(ang);
+  const y = cy + Rg * Math.sin(ang);
+  return {
+    id: `g:${g.slug}`,
+    kind: 'gallery',
+    x,
+    y,
+    label: g.title,
+    href: galleryUrl(g.slug),
+    slug: g.slug,
+    ang,
+    inner: { x: x - 30 * Math.cos(ang), y: y - 30 * Math.sin(ang) },
+  };
+});
+
+const byGallery = new Map<string, typeof articles>();
+for (const e of articles) {
+  const list = byGallery.get(e.data.gallery) ?? [];
+  list.push(e);
+  byGallery.set(e.data.gallery, list);
+}
+
+const articleNodes: Node[] = [];
+const articleNodeById = new Map<string, Node>();
+for (const gn of galleryNodes) {
+  const list = byGallery.get(gn.slug) ?? [];
+  const n = list.length;
+  const spreadDeg = Math.min(78, 22 * Math.max(n - 1, 0));
+  list.forEach((e, k) => {
+    const offset = n <= 1 ? 0 : (k / (n - 1) - 0.5) * spreadDeg;
+    const a = gn.ang + offset * DEG;
+    const x = gn.x + Re * Math.cos(a);
+    const y = gn.y + Re * Math.sin(a);
+    const node: Node = {
+      id: `e:${e.id}`,
+      kind: 'article',
+      x,
+      y,
+      label: e.data.title,
+      href: articleUrl(e),
+      slug: gn.slug,
+      inner: { x, y },
+    };
+    articleNodes.push(node);
+    articleNodeById.set(e.id, node);
+  });
+}
+
+/* ---- edges ------------------------------------------------------------- */
+interface Edge {
+  a: string;
+  b: string;
+  kind: 'member' | 'link';
+  d: string;
+}
+const edges: Edge[] = [];
+
+// membership: section node -> its articles
+for (const gn of galleryNodes) {
+  for (const e of byGallery.get(gn.slug) ?? []) {
+    const en = articleNodeById.get(e.id)!;
+    edges.push({
+      a: gn.id,
+      b: en.id,
+      kind: 'member',
+      d: `M${gn.x.toFixed(1)} ${gn.y.toFixed(1)} L${en.x.toFixed(1)} ${en.y.toFixed(1)}`,
+    });
+  }
+}
+
+// cross-links: article <-> article, deduped, curved toward centre
+const seen = new Set<string>();
+for (const e of articles) {
+  const from = articleNodeById.get(e.id);
+  if (!from) continue;
+  for (const targetId of e.data.connections) {
+    const to = articleNodeById.get(targetId);
+    if (!to) continue;
+    const key = [e.id, targetId].sort().join('::');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const mx = (from.x + to.x) / 2;
+    const my = (from.y + to.y) / 2;
+    const qx = mx + (cx - mx) * 0.4;
+    const qy = my + (cy - my) * 0.4;
+    edges.push({
+      a: `e:${e.id}`,
+      b: `e:${targetId}`,
+      kind: 'link',
+      d: `M${from.x.toFixed(1)} ${from.y.toFixed(1)} Q${qx.toFixed(1)} ${qy.toFixed(1)} ${to.x.toFixed(1)} ${to.y.toFixed(1)}`,
+    });
+  }
+}
+
+const allNodes = [...galleryNodes, ...articleNodes];
+const adjacency = edges.map((e) => [e.a, e.b]);
+const linkCount = edges.filter((e) => e.kind === 'link').length;
+---
+
+<BaseLayout
+  title="Map of Curiosity"
+  description="A living graph of everything here — eight sections and the threads that run between the ideas in them."
+  width="full"
+>
+  <div class="map measure-full">
+    <header class="map__intro">
+      <p class="eyebrow">Map of Curiosity</p>
+      <h1 class="map__title">How it all connects</h1>
+      <p class="map__lede">
+        Not a sitemap — a picture of how one mind wanders. Eight sections ring the centre; each
+        article sits near the section it belongs to, and the curved threads are the {linkCount} links between
+        ideas across everything here.
+        <span class="map__hint">Hover a node to follow its threads; click to open it.</span>
+      </p>
+    </header>
+
+    <figure class="map__figure">
+      <svg
+        id="curiosity-map"
+        viewBox={`0 0 ${W} ${H}`}
+        role="group"
+        aria-label="A radial graph of the site's sections and the connections between articles."
+      >
+        <!-- faint spokes from the centre to each section -->
+        <g class="spokes">
+          {
+            galleryNodes.map((gn) => (
+              <line x1={cx} y1={cy} x2={gn.x} y2={gn.y} />
+            ))
+          }
+        </g>
+
+        <!-- edges -->
+        <g class="edges" fill="none">
+          {
+            edges.map((e) => (
+              <path class={`edge edge--${e.kind}`} data-a={e.a} data-b={e.b} d={e.d} />
+            ))
+          }
+        </g>
+
+        <!-- centre mark -->
+        <g class="hub" aria-hidden="true">
+          <circle cx={cx} cy={cy} r="5" />
+          <circle class="hub__ring" cx={cx} cy={cy} r="13" />
+        </g>
+
+        <!-- nodes -->
+        <g class="nodes">
+          {
+            allNodes.map((node) => (
+              <a
+                href={node.href}
+                class={`node node--${node.kind}`}
+                data-id={node.id}
+                aria-label={
+                  node.kind === 'gallery' ? `${node.label} section` : `Article: ${node.label}`
+                }
+              >
+                <title>{node.label}</title>
+                <circle
+                  class="node__dot"
+                  cx={node.x}
+                  cy={node.y}
+                  r={node.kind === 'gallery' ? 9 : 5}
+                  style={`--p:${(node.x * 7 + node.y) % 5}s`}
+                />
+                <text
+                  class="node__label"
+                  x={node.kind === 'gallery' ? node.inner.x : node.x}
+                  y={node.kind === 'gallery' ? node.inner.y : node.y - 11}
+                  text-anchor="middle"
+                  dominant-baseline={node.kind === 'gallery' ? 'middle' : 'auto'}
+                >
+                  {node.label}
+                </text>
+              </a>
+            ))
+          }
+        </g>
+      </svg>
+
+      <figcaption class="map__legend">
+        <span><i class="key key--gallery"></i> Section</span>
+        <span><i class="key key--article"></i> Article</span>
+        <span><i class="key key--thread"></i> Connection</span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <script type="application/json" id="map-adjacency" set:html={JSON.stringify(adjacency)} is:inline
+  ></script>
+
+  <script>
+    // Re-runs on first load and after every view-transition navigation.
+    function initCuriosityMap() {
+      const svg = document.getElementById('curiosity-map');
+      const dataEl = document.getElementById('map-adjacency');
+      if (!svg || !dataEl) return;
+
+      const pairs: [string, string][] = JSON.parse(dataEl.textContent || '[]');
+      const neighbours = new Map<string, Set<string>>();
+      const link = (a: string, b: string) => {
+        let set = neighbours.get(a);
+        if (!set) neighbours.set(a, (set = new Set()));
+        set.add(b);
+      };
+      for (const [a, b] of pairs) {
+        link(a, b);
+        link(b, a);
+      }
+
+      const nodes = Array.from(svg.querySelectorAll<SVGAElement>('.node'));
+      const edges = Array.from(svg.querySelectorAll<SVGPathElement>('.edge'));
+
+      const activate = (id: string) => {
+        const lit = neighbours.get(id) ?? new Set<string>();
+        svg.classList.add('is-exploring');
+        for (const n of nodes) {
+          const nid = n.dataset.id!;
+          n.classList.toggle('is-active', nid === id);
+          n.classList.toggle('is-linked', lit.has(nid));
+        }
+        for (const e of edges) {
+          e.classList.toggle('is-lit', e.dataset.a === id || e.dataset.b === id);
+        }
+      };
+
+      const clear = () => {
+        svg.classList.remove('is-exploring');
+        for (const n of nodes) n.classList.remove('is-active', 'is-linked');
+        for (const e of edges) e.classList.remove('is-lit');
+      };
+
+      for (const n of nodes) {
+        const id = n.dataset.id!;
+        n.addEventListener('pointerenter', () => activate(id));
+        n.addEventListener('pointerleave', clear);
+        n.addEventListener('focusin', () => activate(id));
+        n.addEventListener('focusout', clear);
+      }
+    }
+
+    document.addEventListener('astro:page-load', initCuriosityMap);
+  </script>
+</BaseLayout>
+
+<style>
+  .map {
+    padding-top: clamp(1.6rem, 4vw, 2.8rem);
+  }
+  .map__intro {
+    max-width: 50rem;
+  }
+  .map__title {
+    font-size: clamp(2rem, 1.4rem + 2.6vw, 3rem);
+    line-height: 1.06;
+    margin: 0.3rem 0 0;
+  }
+  .map__lede {
+    margin-top: 0.9rem;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--ink-secondary);
+  }
+  .map__hint {
+    color: var(--ink-faint);
+  }
+
+  .map__figure {
+    margin: clamp(1.5rem, 4vw, 2.6rem) 0 0;
+  }
+  #curiosity-map {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .spokes line {
+    stroke: var(--border-faint);
+    stroke-width: 1;
+  }
+
+  .edge {
+    stroke-linecap: round;
+    transition: stroke 200ms var(--ease), opacity 200ms var(--ease);
+  }
+  .edge--member {
+    stroke: var(--border);
+    stroke-width: 1.2;
+  }
+  .edge--link {
+    stroke: var(--ink-faint);
+    stroke-width: 1.4;
+    stroke-dasharray: 2 6;
+    opacity: 0.75;
+  }
+  .edge.is-lit {
+    stroke: var(--accent);
+    stroke-width: 2;
+    opacity: 1;
+  }
+
+  .hub circle {
+    fill: var(--accent);
+  }
+  .hub__ring {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.2;
+    opacity: 0.5;
+  }
+
+  .node {
+    cursor: pointer;
+    transition: opacity 200ms var(--ease);
+  }
+  .node__dot {
+    fill: var(--paper-raised);
+    stroke: var(--ink);
+    stroke-width: 2;
+    transition: r 160ms var(--ease), fill 160ms var(--ease), stroke 160ms var(--ease);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .node--gallery .node__dot {
+    fill: var(--accent-wash);
+    stroke-width: 2.4;
+  }
+  .node__label {
+    font-family: var(--font-ui);
+    fill: var(--ink-secondary);
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+  }
+  .node--gallery .node__label {
+    font-size: 17px;
+    font-weight: 600;
+    fill: var(--ink);
+  }
+  .node--article .node__label {
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 160ms var(--ease);
+  }
+
+  .node:hover .node__dot,
+  .node:focus-visible .node__dot,
+  .node.is-active .node__dot {
+    fill: var(--accent);
+    stroke: var(--accent);
+  }
+  .node.is-active .node__dot {
+    r: 11;
+  }
+  .node.is-active .node__label,
+  .node.is-linked .node__label,
+  .node:hover .node__label,
+  .node:focus-visible .node__label {
+    opacity: 1;
+  }
+
+  /* dim everything not part of the hovered thread */
+  #curiosity-map.is-exploring .node:not(.is-active):not(.is-linked) {
+    opacity: 0.28;
+  }
+  #curiosity-map.is-exploring .edge:not(.is-lit) {
+    opacity: 0.08;
+  }
+
+  .map__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+    margin-top: 1rem;
+    font-family: var(--font-ui);
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+  }
+  .map__legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .key {
+    width: 0.8rem;
+    height: 0.8rem;
+    display: inline-block;
+  }
+  .key--gallery {
+    background: var(--accent-wash);
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+  }
+  .key--article {
+    background: var(--paper-raised);
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+  }
+  .key--thread {
+    border-top: 2px dashed var(--ink-faint);
+    height: 0;
+    align-self: center;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .node__dot {
+      animation: twinkle 6s var(--p, 0s) ease-in-out infinite;
+    }
+    .edge--link {
+      animation: thread 7s linear infinite;
+    }
+    @keyframes twinkle {
+      0%,
+      100% {
+        opacity: 0.9;
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.08);
+      }
+    }
+    @keyframes thread {
+      to {
+        stroke-dashoffset: -32;
+      }
+    }
+  }
+</style>
