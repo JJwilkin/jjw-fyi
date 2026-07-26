@@ -1,9 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import Painting from '../../components/paintings/Painting.astro';
 import ArticleCard from '../../components/ArticleCard.astro';
 import { galleries, type Gallery } from '../../data/galleries';
-import { getArticlesByGallery, frameTransition } from '../../lib/content';
+import { getArticlesByGallery } from '../../lib/content';
 
 export function getStaticPaths() {
   return galleries.map((gallery) => ({
@@ -18,166 +17,53 @@ interface Props {
 
 const { gallery } = Astro.props;
 const articles = await getArticlesByGallery(gallery.slug);
-const usesBuiltInFrame = gallery.slug === 'systems';
 ---
 
 <BaseLayout
   title={`${gallery.title} — ${gallery.medium}`}
   description={gallery.description}
-  width="wide"
 >
-  <div class="room measure-wide">
-    <a class="room__back" href="/">← Home</a>
+  <div class="room measure">
+    <hr />
 
     <header class="hero">
-      <div class="hero__text">
-        <p class="eyebrow">{gallery.medium}</p>
-        <h1 class="hero__title">{gallery.title}</h1>
-        <p class="hero__desc">{gallery.description}</p>
-        <ul class="hero__topics" aria-label="Topics in this section">
-          {gallery.topics.map((t) => <li>{t}</li>)}
-        </ul>
-      </div>
-      <div
-        class={`hero__art ${usesBuiltInFrame ? 'hero__art--built-in-frame' : 'artframe'}`}
-        transition:name={frameTransition(gallery.slug)}
-      >
-        <div class={usesBuiltInFrame ? 'hero__art-inner' : 'artframe__art'}>
-          <Painting slug={gallery.slug} />
-        </div>
-      </div>
+      <h2 class="hero__title">{gallery.title.toLowerCase()}</h2>
+      <p>{gallery.description}</p>
     </header>
 
-    <section class="holdings" aria-labelledby="holdings-head">
-      <h2 id="holdings-head" class="holdings__head">
-        <span class="eyebrow">Articles</span>
-        <span class="holdings__count">
-          {articles.length} {articles.length === 1 ? 'piece' : 'pieces'}
-        </span>
-      </h2>
-
+    <section aria-labelledby="articles-title">
+      <h2 id="articles-title">posts</h2>
       {
         articles.length > 0 ? (
-          <ul class="holdings__grid">
+          <div class="holdings">
             {articles.map((entry) => (
-              <li>
-                <ArticleCard entry={entry} gallery={gallery} />
-              </li>
+              <ArticleCard entry={entry} gallery={gallery} />
             ))}
-          </ul>
+          </div>
         ) : (
-          <p class="holdings__empty">
-            Nothing here yet. Head back <a href="/">home</a> or open the{' '}
-            <a href="/map/">Map of Curiosity</a>.
-          </p>
+          <p>Nothing here yet. Head back <a href="/">home</a>.</p>
         )
       }
     </section>
+
+    <p class="room__back"><a href="/">← All posts</a></p>
   </div>
 </BaseLayout>
 
 <style>
-  .room {
-    padding-block: clamp(1.4rem, 4vw, 2.6rem) 0;
-  }
-  .room__back {
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    text-decoration: none;
-    color: var(--ink-faint);
-  }
-  .room__back:hover {
-    color: var(--ink);
-  }
-
-  .hero {
-    display: grid;
-    gap: clamp(1.5rem, 4vw, 3rem);
-    align-items: center;
-    margin-top: 1.2rem;
-    padding-bottom: clamp(2rem, 5vw, 3.2rem);
-    border-bottom: 1px solid var(--border);
-  }
-  @media (min-width: 46rem) {
-    .hero {
-      grid-template-columns: 1fr 1fr;
-    }
+  .room > hr {
+    margin-bottom: 1.75rem;
   }
 
   .hero__title {
-    font-size: clamp(2.2rem, 1.5rem + 3vw, 3.4rem);
-    line-height: 1.05;
-    margin: 0.3rem 0 0;
-  }
-  .hero__desc {
-    margin-top: 0.9rem;
-    font-size: 1.12rem;
-    line-height: 1.55;
-    color: var(--ink-secondary);
-    max-width: 42ch;
-  }
-  .hero__topics {
-    list-style: none;
-    margin: 1.2rem 0 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-  }
-  .hero__topics li {
-    font-family: var(--font-ui);
-    font-size: 0.74rem;
-    letter-spacing: 0.02em;
-    color: var(--ink-secondary);
-    background: var(--paper-sunk);
-    border: 1px solid var(--border-faint);
-    border-radius: 999px;
-    padding: 0.22rem 0.7rem;
+    margin-bottom: 1.75rem;
   }
 
-  /* .hero__art also carries the global .artframe moulding */
-  .hero__art {
-    aspect-ratio: 4 / 3;
-    --molding: clamp(8px, 0.35rem + 0.8vw, 15px);
-    --hang: 0 12px 28px -16px rgba(40, 34, 24, 0.36);
-  }
-  .hero__art--built-in-frame {
-    aspect-ratio: 1 / 1;
-    display: grid;
-    background: transparent;
-  }
-  .hero__art-inner {
-    overflow: visible;
+  .hero {
+    margin-bottom: 1.75rem;
   }
 
-  .holdings {
-    padding-top: clamp(2rem, 5vw, 3rem);
-  }
-  .holdings__head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.4rem;
-  }
-  .holdings__count {
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    color: var(--ink-faint);
-  }
-  .holdings__grid {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 1.1rem;
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-  }
-  .holdings__empty {
-    color: var(--ink-secondary);
-    font-size: 1.05rem;
-    padding: 1.5rem 0;
+  .room__back {
+    margin-top: 1.75rem;
   }
 </style>
