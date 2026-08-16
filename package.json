@@ -10,6 +10,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "test:notion": "node --test scripts/notion-to-article.test.mjs",
+    "import:notion": "node scripts/notion-to-article.mjs",
     "astro": "astro"
   },
   "dependencies": {

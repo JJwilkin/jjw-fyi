@@ -1,0 +1,131 @@
+name: Publish a Notion article
+
+on:
+  workflow_dispatch:
+    inputs:
+      notion_url:
+        description: Link to a Notion page connected to the integration
+        required: true
+        type: string
+      tags:
+        description: Comma-separated tags
+        required: false
+        type: string
+      gallery:
+        description: Site section
+        required: true
+        default: writing
+        type: choice
+        options:
+          - writing
+          - systems
+          - photography
+          - nature
+          - philosophy
+          - projects
+          - travel
+          - field-notes
+      medium:
+        description: Format label
+        required: true
+        default: Essay
+        type: string
+      featured:
+        description: Feature on the homepage
+        required: true
+        default: false
+        type: boolean
+      publish_now:
+        description: Merge after validation (turn off to review the PR first)
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: notion-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Import the Notion page
+        id: article
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_URL: ${{ inputs.notion_url }}
+          ARTICLE_TAGS: ${{ inputs.tags }}
+          ARTICLE_GALLERY: ${{ inputs.gallery }}
+          ARTICLE_MEDIUM: ${{ inputs.medium }}
+          ARTICLE_FEATURED: ${{ inputs.featured }}
+        run: |
+          node scripts/notion-to-article.mjs \
+            --url "$NOTION_URL" \
+            --tags "$ARTICLE_TAGS" \
+            --gallery "$ARTICLE_GALLERY" \
+            --medium "$ARTICLE_MEDIUM" \
+            --featured "$ARTICLE_FEATURED" \
+            --draft "false"
+
+      - name: Validate the generated site
+        run: |
+          npm run test:notion
+          npm run check
+          npm run build
+
+      - name: Create the publishing pull request
+        id: pull_request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTICLE_TITLE: ${{ steps.article.outputs.title }}
+          ARTICLE_SLUG: ${{ steps.article.outputs.slug }}
+        run: |
+          branch="publish/notion-${ARTICLE_SLUG}-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add src/content/articles public/images
+          git commit -m "Publish ${ARTICLE_TITLE}"
+          git push --set-upstream origin "$branch"
+          pr_url=$(gh pr create \
+            --base "${GITHUB_REF_NAME}" \
+            --head "$branch" \
+            --title "Publish: ${ARTICLE_TITLE}" \
+            --body "Imported from Notion and validated by the publishing workflow.")
+          echo "url=$pr_url" >> "$GITHUB_OUTPUT"
+
+      - name: Merge and publish
+        if: inputs.publish_now
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.pull_request.outputs.url }}
+        run: gh pr merge "$PR_URL" --squash --delete-branch
+
+      - name: Add the result to the run summary
+        env:
+          PR_URL: ${{ steps.pull_request.outputs.url }}
+          ARTICLE_TITLE: ${{ steps.article.outputs.title }}
+          PUBLISH_NOW: ${{ inputs.publish_now }}
+        run: |
+          echo "## ${ARTICLE_TITLE}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pull request: ${PR_URL}" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$PUBLISH_NOW" == "true" ]]; then
+            echo "The pull request was merged. Netlify will publish it from the main branch." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The pull request is ready for review and merge." >> "$GITHUB_STEP_SUMMARY"
+          fi
