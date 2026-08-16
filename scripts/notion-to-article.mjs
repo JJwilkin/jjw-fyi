@@ -1,9 +1,8 @@
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import convertHeic from 'heic-convert';
 import { NotionAPI } from 'notion-client';
-import { getBlockTitle, getBlockValue, getTextContent } from 'notion-utils';
+import { defaultMapImageUrl, getBlockTitle, getBlockValue, getTextContent } from 'notion-utils';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 const ARTICLE_DIRECTORY = path.resolve('src/content/articles');
@@ -118,17 +117,19 @@ function blockValue(recordMap, id) {
 }
 
 async function saveImage(block, context) {
-  const source = context.recordMap.signed_urls?.[block.id] || block.properties?.source?.[0]?.[0] || '';
-  if (!source) throw new Error('A Notion image is missing its URL.');
-  const response = await fetch(source);
+  const original = block.properties?.source?.[0]?.[0] || context.recordMap.signed_urls?.[block.id] || '';
+  if (!original) throw new Error('A Notion image is missing its URL.');
+  const source = defaultMapImageUrl(original, block) || original;
+  const response = await fetch(source, {
+    headers: {
+      Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+      'User-Agent': 'Mozilla/5.0',
+    },
+  });
   if (!response.ok) throw new Error(`Could not download a Notion image (${response.status}).`);
   const contentType = response.headers.get('content-type')?.split(';')[0];
-  let extension = fileExtension(contentType, source);
-  let image = Buffer.from(await response.arrayBuffer());
-  if (extension === 'heic' || extension === 'heif' || contentType === 'image/heic' || contentType === 'image/heif') {
-    image = Buffer.from(await convertHeic({ buffer: image, format: 'JPEG', quality: 0.86 }));
-    extension = 'jpg';
-  }
+  const extension = fileExtension(contentType, source);
+  const image = Buffer.from(await response.arrayBuffer());
   const filename = `${String(++context.imageNumber).padStart(2, '0')}.${extension}`;
   const directory = path.join(IMAGE_DIRECTORY, context.slug);
   await mkdir(directory, { recursive: true });

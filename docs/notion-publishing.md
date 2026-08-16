@@ -39,7 +39,8 @@ it off to inspect the removal first.
 The importer handles paragraphs, headings, bulleted and numbered lists, checkboxes, quotes,
 callouts, code blocks with language labels, links, equations, images, dividers, toggles, tables,
 columns, and synced blocks. Notion-hosted images are downloaded to `public/images/articles` because
-Notion's temporary image URLs expire. HEIC and HEIF uploads are converted to browser-safe JPEGs.
+Notion's temporary image URLs expire. Notion's image proxy supplies browser-safe formats such as
+WebP, including for HEIC and HEIF uploads.
 
 The importer stops instead of silently omitting an unsupported block. Convert that block to a
 supported type and run the workflow again.
