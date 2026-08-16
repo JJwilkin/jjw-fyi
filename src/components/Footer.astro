@@ -1,64 +1,23 @@
 <footer class="site-footer">
   <div class="site-footer__inner">
-    <form class="site-search" action="/search/" method="get">
-      <label for="site-search-input" class="sr-only">Search jjw.fyi</label>
-      <input id="site-search-input" name="q" type="search" placeholder="Search posts" />
-      <button type="submit">Search</button>
-    </form>
-
-    <p class="site-footer__note">© 2026 Joshua Wilkinson</p>
+    <p class="site-footer__note">© 2026 Josh J Wilkinson</p>
   </div>
 </footer>
 
 <style>
   .site-footer {
-    width: 100%;
-    margin-top: 3.5rem;
-  }
-  .site-footer__inner {
-    width: 100%;
-    max-width: var(--measure);
-    margin-inline: auto;
-    padding: 0 var(--gutter) 2.625rem;
-  }
-
-  .site-search {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding-top: 0.75rem;
-  }
-
-  .site-search input {
-    min-width: 0;
-    flex: 1;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #bdbdbd;
-    border-radius: 5px;
-    background: var(--paper-raised);
-    color: var(--ink);
-    font: inherit;
-    font-size: 1rem;
-  }
-
-  .site-search button {
-    padding: 0.55rem 1.1rem;
-    border: 0;
-    border-radius: 4px;
-    background: #1a73e8;
-    color: #fff;
-    font: inherit;
-    font-size: 0.95rem;
-    cursor: pointer;
-  }
-
-  .site-search button:hover {
-    background: #1558b0;
+    margin-top: 54px;
+    padding-top: 18px;
+    border-top: 1px solid var(--blue-pale);
   }
 
   .site-footer__note {
-    margin: 1.75rem 0 0;
-    color: var(--ink-secondary);
-    font-size: 0.9rem;
+    margin: 0;
+    color: var(--ink-faint);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    text-transform: uppercase;
   }
 </style>

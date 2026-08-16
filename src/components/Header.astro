@@ -4,9 +4,8 @@ const isHome = path === '/';
 
 const links = [
   { href: '/about/', label: 'About' },
-  { href: '/map/', label: 'Map' },
-  { href: '/#sections', label: 'Sections' },
-  { href: '/search/', label: 'Search' },
+  { href: '/tags/', label: 'Tags' },
+  ...(import.meta.env.DEV ? [{ href: '/write/', label: 'Write' }] : []),
 ];
 
 const isCurrent = (href: string) =>
@@ -14,56 +13,102 @@ const isCurrent = (href: string) =>
 ---
 
 <header class="site-header">
-  <div class="site-header__inner">
-    <h1 class="wordmark">
-      <a href="/" aria-label="Home" aria-current={isHome ? 'page' : undefined}>
-        joshua wilkinson
-      </a>
-    </h1>
-
-    <nav class="site-nav" aria-label="Primary">
-      {
-        links.map((link, index) => (
-          <>
-            {index > 0 && <span aria-hidden="true">│</span>}
-            <a href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
-              {link.label.toLowerCase()}
-            </a>
-          </>
-        ))
-      }
-    </nav>
+  <div class="identity">
+    <a class="wordmark" href="/" aria-label="Home" aria-current={isHome ? 'page' : undefined}>
+      Josh J Wilkinson
+    </a>
+    <span class="strapline">software · systems · writing</span>
   </div>
+
+  <nav class="site-nav" aria-label="Primary">
+    {
+      links.map((link) => (
+        <a href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
+          {link.label}
+        </a>
+      ))
+    }
+  </nav>
 </header>
 
 <style>
   .site-header {
-    width: 100%;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2rem;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--blue);
   }
-  .site-header__inner {
-    width: 100%;
-    max-width: var(--measure);
-    margin-inline: auto;
-    padding: 2.625rem var(--gutter) 0;
+
+  .identity {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    min-width: 0;
   }
 
   .wordmark {
-    margin: 0 0 0.875rem;
+    flex: none;
+    color: var(--blue-deep);
+    font-family: var(--font-body);
+    font-size: 21px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    line-height: 1;
   }
 
-  .wordmark a {
-    color: inherit;
-    box-shadow: none;
+  .strapline {
+    overflow: hidden;
+    color: var(--ink-faint);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
   }
 
   .site-nav {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0 0.42rem;
-    margin-bottom: 1.75rem;
+    flex: none;
+    gap: 26px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1;
   }
 
   .site-nav a {
-    color: var(--link);
+    color: var(--blue);
+  }
+
+  .site-nav a[aria-current='page'] {
+    color: var(--blue-deep);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  @media (max-width: 760px) {
+    .site-header {
+      align-items: center;
+      padding-bottom: 16px;
+    }
+
+    .wordmark {
+      font-size: 17px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .strapline {
+      display: none;
+    }
+
+    .site-nav {
+      gap: 14px;
+      font-size: 11px;
+      text-transform: lowercase;
+    }
   }
 </style>

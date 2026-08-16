@@ -1,8 +1,7 @@
 ---
-import '@fontsource-variable/source-serif-4';
-import '@fontsource-variable/inter';
 import '../styles/global.css';
 import { ClientRouter } from 'astro:transitions';
+import Analytics from '../components/Analytics.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 
@@ -17,13 +16,13 @@ interface Props {
 
 const {
   title,
-  description = 'Writing, systems, photography, nature, travel and field notes by Joshua Wilkinson.',
+  description = 'Writing, systems, photography, nature, travel and field notes by Josh J Wilkinson.',
   width = 'reading',
   type = 'website',
 } = Astro.props;
 
-const siteName = 'Joshua Wilkinson';
-const fullTitle = title ? `${title} · Joshua Wilkinson` : siteName;
+const siteName = 'Josh J Wilkinson';
+const fullTitle = title ? `${title} · Josh J Wilkinson` : siteName;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 
@@ -34,7 +33,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="theme-color" content="#f0efef" />
+    <meta name="theme-color" content="#fbfaf6" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
 
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
@@ -47,14 +53,24 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta property="og:site_name" content={siteName} />
     <meta name="twitter:card" content="summary" />
 
+    <Analytics />
     <ClientRouter />
   </head>
   <body data-width={width}>
     <a class="skip-link" href="#main">Skip to content</a>
-    <Header transition:persist />
-    <main id="main" tabindex="-1">
-      <slot />
-    </main>
-    <Footer transition:persist />
+    <div class="site-canvas">
+      <div class="porcelain-band" aria-hidden="true"></div>
+      <div class="site-paper">
+        <div class="site-border">
+          <div class="site-frame">
+            <Header transition:persist />
+            <main id="main" tabindex="-1">
+              <slot />
+            </main>
+            <Footer transition:persist />
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
