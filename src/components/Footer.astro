@@ -1,90 +1,23 @@
----
-import { galleries } from '../data/galleries';
-const year = 2026;
----
-
 <footer class="site-footer">
   <div class="site-footer__inner">
-    <nav class="site-footer__wings" aria-label="Sections">
-      <span class="eyebrow">Sections</span>
-      <ul>
-        {
-          galleries.map((g) => (
-            <li>
-              <a href={`/galleries/${g.slug}/`}>{g.title}</a>
-            </li>
-          ))
-        }
-      </ul>
-    </nav>
-
-    <div class="site-footer__colophon">
-      <p>
-        Writing, systems, photographs and field notes. Set in
-        <span class="u-ui">Source Serif 4</span> &amp; <span class="u-ui">Inter</span>; built with
-        Astro and kept deliberately quiet.
-      </p>
-      <p class="u-faint">
-        © {year} Joshua Wilkinson ·
-        <a href="/map/">Map of Curiosity</a> ·
-        <a href="/about/">About</a>
-      </p>
-    </div>
+    <p class="site-footer__note">© 2026 Josh J Wilkinson</p>
   </div>
 </footer>
 
 <style>
   .site-footer {
-    margin-top: 5rem;
-    border-top: 1px solid var(--border);
-    background: var(--paper-sunk);
-  }
-  .site-footer__inner {
-    max-width: var(--measure-full);
-    margin-inline: auto;
-    padding: 2.4rem var(--gutter) 3rem;
-    display: grid;
-    gap: 2rem;
-    grid-template-columns: 1fr;
-  }
-  @media (min-width: 44rem) {
-    .site-footer__inner {
-      grid-template-columns: 1fr 1.2fr;
-      gap: 3rem;
-    }
+    margin-top: 54px;
+    padding-top: 18px;
+    border-top: 1px solid var(--blue-pale);
   }
 
-  .site-footer__wings ul {
-    list-style: none;
-    margin: 0.7rem 0 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.35rem 1rem;
-  }
-  .site-footer__wings a {
+  .site-footer__note {
+    margin: 0;
+    color: var(--ink-faint);
     font-family: var(--font-ui);
-    font-size: 0.86rem;
-    text-decoration: none;
-    color: var(--ink-secondary);
-  }
-  .site-footer__wings a:hover {
-    color: var(--link-hover);
-    text-decoration: underline;
-    text-underline-offset: 0.15em;
-  }
-
-  .site-footer__colophon {
-    font-size: 0.92rem;
-    line-height: 1.6;
-    color: var(--ink-secondary);
-    max-width: 38ch;
-  }
-  .site-footer__colophon p + p {
-    margin-top: 0.8rem;
-  }
-  .site-footer__colophon .u-ui {
-    font-weight: 600;
-    color: var(--ink);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    text-transform: uppercase;
   }
 </style>

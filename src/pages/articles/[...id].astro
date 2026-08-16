@@ -1,10 +1,16 @@
 ---
 import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import Plaque from '../../components/Plaque.astro';
 import Connections from '../../components/Connections.astro';
 import { getGallery } from '../../data/galleries';
-import { getArticles, resolveConnections, galleryUrl } from '../../lib/content';
+import {
+  formatFullDate,
+  getArticles,
+  isoDate,
+  readingMinutes,
+  resolveConnections,
+  tagSlug,
+} from '../../lib/content';
 
 export async function getStaticPaths() {
   const articles = await getArticles();
@@ -15,90 +21,247 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { Content } = await render(entry);
-
+const { Content, headings } = await render(entry);
 const gallery = getGallery(entry.data.gallery);
 const all = await getArticles();
 const connections = resolveConnections(entry, all);
+const contents = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+const tags =
+  entry.data.tags.length > 0 ? entry.data.tags : [gallery?.title ?? entry.data.medium];
 ---
 
 <BaseLayout title={entry.data.title} description={entry.data.summary} type="article">
-  <article class="article" data-pagefind-body>
-    <div class="measure article__top">
-      {
-        gallery && (
-          <a class="article__back" href={galleryUrl(gallery.slug)}>
-            ← {gallery.title}
-          </a>
-        )
-      }
-      <Plaque
-        title={entry.data.title}
-        medium={entry.data.medium}
-        date={entry.data.date}
-        summary={entry.data.summary}
-        tags={entry.data.tags}
-        gallery={gallery}
-      />
+  <article class="article">
+    <div class="article__utility">
+      <a href="/">← Josh J Wilkinson</a>
+      <span>
+        <time datetime={isoDate(entry.data.date)}>{formatFullDate(entry.data.date)}</time>
+        · {readingMinutes(entry)} min
+      </span>
     </div>
 
-    <div class="measure prose flow article__body">
-      <Content />
+    <div class="article__layout">
+      <div class="article__main">
+        <div class="article__topics">
+          {tags.map((tag) => (
+            <a href={`/tags/?tag=${encodeURIComponent(tagSlug(tag))}`}>{tag}</a>
+          ))}
+        </div>
+        <h1>{entry.data.title}</h1>
+        <p class="article__dek">{entry.data.summary}</p>
+
+        <div class="prose article__body">
+          <Content />
+        </div>
+      </div>
+
+      <aside class="article__rail">
+        {
+          contents.length > 0 && (
+            <nav aria-label="Article contents">
+              <h2>Contents</h2>
+              {contents.map((heading) => (
+                <a class:list={{ nested: heading.depth === 3 }} href={`#${heading.slug}`}>
+                  {heading.text}
+                </a>
+              ))}
+            </nav>
+          )
+        }
+
+        {
+          entry.data.tags.length > 0 && (
+            <section class="filed">
+              <h2>Filed under</h2>
+              {entry.data.tags.map((tag) => (
+                <a href={`/tags/?tag=${encodeURIComponent(tagSlug(tag))}`}>{tag}</a>
+              ))}
+            </section>
+          )
+        }
+      </aside>
     </div>
 
-    <div class="measure article__foot">
-      <hr class="rule-mark" />
+    <footer class="article__foot">
       <Connections items={connections} />
-      <nav class="article__nav" aria-label="Keep reading">
-        {gallery && <a href={galleryUrl(gallery.slug)}>More in {gallery.title}</a>}
-        <a href="/map/">Map of Curiosity</a>
+      <nav aria-label="Keep reading">
+        <a href="/">← All writing</a>
+        <a href="/tags/">Browse tags →</a>
       </nav>
-    </div>
+    </footer>
   </article>
 </BaseLayout>
 
 <style>
   .article {
-    padding-top: clamp(1.4rem, 4vw, 2.4rem);
-  }
-  .article__back {
-    display: inline-block;
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    text-decoration: none;
-    color: var(--ink-faint);
-    margin-bottom: 1.1rem;
-  }
-  .article__back:hover {
-    color: var(--ink);
+    padding-top: 34px;
   }
 
-  .article__body {
-    margin-top: clamp(1.8rem, 4vw, 2.6rem);
+  .article__utility {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    color: var(--ink-faint);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  .article__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 180px;
+    gap: 56px;
+    padding-top: 44px;
+  }
+
+  .article__main {
+    min-width: 0;
+  }
+
+  .article__topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px 0;
+  }
+
+  .article__topics a {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .article__topics a + a::before {
+    content: '·';
+    display: inline-block;
+    margin: 0 12px;
+    color: var(--ink-faint);
+  }
+
+  .article h1 {
+    max-width: 20ch;
+    margin: 14px 0 22px;
+    font-size: 46px;
+  }
+
+  .article__dek {
+    max-width: 64ch;
+    margin: 0 0 30px;
+    color: var(--ink-secondary);
+    font-size: 19px;
+    font-weight: 300;
+    line-height: 1.72;
+    text-wrap: pretty;
+  }
+
+  .article__body :global(> p:first-child::first-letter) {
+    float: left;
+    padding: 6px 12px 0 0;
+    color: var(--blue-deep);
+    font-size: 62px;
+    font-weight: 300;
+    line-height: 0.78;
+  }
+
+  .article__rail {
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    padding-top: 64px;
+  }
+
+  .article__rail nav,
+  .article__rail section {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .article__rail h2 {
+    margin-bottom: 2px;
+    color: var(--ink-faint);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .article__rail nav a {
+    padding-left: 9px;
+    border-left: 1px solid var(--border);
+    color: var(--ink-faint);
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.55;
+  }
+
+  .article__rail nav a:hover {
+    border-left: 2px solid var(--blue);
+    color: var(--blue-deep);
+  }
+
+  .article__rail nav a.nested {
+    padding-left: 18px;
+  }
+
+  .filed {
+    padding: 16px;
+    background: var(--paper-sunk);
+  }
+
+  .filed a {
+    font-size: 13px;
+    font-weight: 300;
+    line-height: 1.5;
   }
 
   .article__foot {
-    margin-top: 1rem;
+    margin-top: 52px;
+    padding-top: 24px;
+    border-top: 1px solid var(--blue-pale);
   }
-  .article__nav {
+
+  .article__foot > nav {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem 1.6rem;
-    margin-top: 2.4rem;
-    padding-top: 1.4rem;
-    border-top: 1px solid var(--border-faint);
-  }
-  .article__nav a {
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-top: 30px;
     font-family: var(--font-ui);
-    font-size: 0.85rem;
-    text-decoration: none;
-    color: var(--link);
+    font-size: 11px;
   }
-  .article__nav a:hover {
-    color: var(--link-hover);
-    text-decoration: underline;
-    text-underline-offset: 0.15em;
+
+  @media (max-width: 760px) {
+    .article {
+      padding-top: 22px;
+    }
+
+    .article__utility {
+      padding-bottom: 22px;
+    }
+
+    .article__layout {
+      display: block;
+      padding-top: 0;
+    }
+
+    .article h1 {
+      margin: 12px 0 20px;
+      font-size: 33px;
+      line-height: 1.14;
+    }
+
+    .article__dek {
+      font-size: 17px;
+    }
+
+    .article__rail {
+      display: none;
+    }
+
+    .article__body :global(> p:first-child::first-letter) {
+      font-size: 52px;
+    }
   }
 </style>

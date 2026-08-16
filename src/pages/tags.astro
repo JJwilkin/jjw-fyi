@@ -1,0 +1,280 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { articleUrl, formatDotDate, getArticles, isoDate, tagSlug } from '../lib/content';
+
+const articles = await getArticles();
+const tags = [...new Set(articles.flatMap((article) => article.data.tags))].sort((a, b) =>
+  a.localeCompare(b),
+);
+---
+
+<BaseLayout title="Tags" description="Browse writing by tag.">
+  <section class="topic-page" data-topic-page>
+    <header class="topic-head">
+      <div>
+        <span>Topic</span>
+        <h1 data-topic-title>Everything</h1>
+      </div>
+      <p data-topic-count>{articles.length} {articles.length === 1 ? 'essay' : 'essays'}</p>
+    </header>
+
+    {
+      tags.length > 0 ? (
+        <>
+          <div class="filters" aria-label="Filter by tag">
+            <button type="button" data-tag="all" aria-pressed="true">all</button>
+            {tags.map((tag) => (
+              <button type="button" data-tag={tagSlug(tag)} aria-pressed="false">
+                {tag.toLowerCase()}
+              </button>
+            ))}
+          </div>
+
+          <div class="topic-grid" data-topic-grid>
+            {articles.map((article) => {
+              const cardTags =
+                article.data.tags.length > 0 ? article.data.tags : [article.data.medium];
+              return (
+                <article data-topic-card data-tags={JSON.stringify(article.data.tags.map(tagSlug))}>
+                  <div class="card-meta">
+                    <div class="card-tags">
+                      {cardTags.map((tag, index) => (
+                        <span>
+                          {index > 0 && <span class="card-tag-separator" aria-hidden="true">·</span>}
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    <time datetime={isoDate(article.data.date)}>{formatDotDate(article.data.date)}</time>
+                  </div>
+                  <h2><a href={articleUrl(article)}>{article.data.title}</a></h2>
+                  <p>{article.data.summary}</p>
+                </article>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <p class="empty">Tags will appear here after you publish your first tagged article.</p>
+      )
+    }
+  </section>
+</BaseLayout>
+
+<script is:inline>
+  function bindTopicFilter() {
+    const page = document.querySelector('[data-topic-page]');
+    if (!page || page.dataset.bound === 'true') return;
+    page.dataset.bound = 'true';
+
+    const buttons = [...page.querySelectorAll('[data-tag]')];
+    const cards = [...page.querySelectorAll('[data-topic-card]')];
+    const title = page.querySelector('[data-topic-title]');
+    const count = page.querySelector('[data-topic-count]');
+
+    function selectTag(tag) {
+      const active = buttons.some((button) => button.dataset.tag === tag) ? tag : 'all';
+      let visible = 0;
+
+      for (const button of buttons) {
+        button.setAttribute('aria-pressed', String(button.dataset.tag === active));
+      }
+
+      for (const card of cards) {
+        const tags = JSON.parse(card.dataset.tags || '[]');
+        const show = active === 'all' || tags.includes(active);
+        card.hidden = !show;
+        if (show) visible += 1;
+      }
+
+      title.textContent = active === 'all'
+        ? 'Everything'
+        : buttons.find((button) => button.dataset.tag === active)?.textContent.trim() || active;
+      count.textContent = `${visible} ${visible === 1 ? 'essay' : 'essays'}`;
+    }
+
+    for (const button of buttons) {
+      button.addEventListener('click', () => {
+        selectTag(button.dataset.tag);
+        const url = new URL(window.location.href);
+        if (button.dataset.tag === 'all') url.searchParams.delete('tag');
+        else url.searchParams.set('tag', button.dataset.tag);
+        history.replaceState({}, '', url);
+      });
+    }
+
+    selectTag(new URLSearchParams(window.location.search).get('tag') || 'all');
+  }
+
+  document.addEventListener('astro:page-load', bindTopicFilter);
+  bindTopicFilter();
+</script>
+
+<style>
+  .topic-page {
+    padding-top: 44px;
+  }
+
+  .topic-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--blue);
+  }
+
+  .topic-head > div {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .topic-head span {
+    color: var(--ink-faint);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .topic-head h1 {
+    font-size: 44px;
+    text-transform: capitalize;
+  }
+
+  .topic-head p {
+    margin: 0;
+    color: var(--ink-faint);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    padding: 22px 0 30px;
+  }
+
+  .filters button {
+    padding: 9px 15px;
+    border: 1px solid var(--blue-pale);
+    background: transparent;
+    color: var(--blue);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    cursor: pointer;
+    transition: color var(--ease), background var(--ease), border-color var(--ease);
+  }
+
+  .filters button[aria-pressed='true'] {
+    border-color: var(--blue-deep);
+    background: var(--blue-deep);
+    color: var(--paper);
+  }
+
+  .topic-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+    border: 1px solid var(--border-faint);
+    background: var(--border-faint);
+  }
+
+  .topic-grid article {
+    min-height: 158px;
+    padding: 26px 28px 28px;
+    background: var(--paper);
+  }
+
+  .topic-grid article:hover {
+    background: var(--paper-sunk);
+  }
+
+  .topic-grid article[hidden] {
+    display: none;
+  }
+
+  .card-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 10px;
+    color: var(--ink-faint);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 0;
+  }
+
+  .card-tags > span {
+    color: var(--blue);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .card-tags .card-tag-separator {
+    margin: 0 10px;
+    color: var(--ink-faint);
+  }
+
+  .topic-grid h2 {
+    margin-bottom: 8px;
+    font-size: 21px;
+    line-height: 1.28;
+  }
+
+  .topic-grid h2 a {
+    color: var(--ink);
+  }
+
+  .topic-grid p {
+    margin: 0;
+    color: var(--ink-secondary);
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+
+  .empty {
+    margin-top: 30px;
+    color: var(--ink-secondary);
+  }
+
+  @media (max-width: 760px) {
+    .topic-page {
+      padding-top: 30px;
+    }
+
+    .topic-head h1 {
+      font-size: 33px;
+    }
+
+    .filters {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      margin-inline: -22px;
+      padding-inline: 22px;
+      scrollbar-width: none;
+    }
+
+    .filters::-webkit-scrollbar {
+      display: none;
+    }
+
+    .topic-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

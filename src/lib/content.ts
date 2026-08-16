@@ -3,9 +3,8 @@ import { getGallery, type Gallery, type GallerySlug } from '../data/galleries';
 
 export type Article = CollectionEntry<'articles'>;
 
-/** Drafts are visible while developing, hidden in the built site. */
-const isPublished = (entry: Article): boolean =>
-  import.meta.env.PROD ? entry.data.draft !== true : true;
+/** Public pages never include drafts; the local editor reads them from disk directly. */
+const isPublished = (entry: Article): boolean => entry.data.draft !== true;
 
 /** All published articles, newest first. */
 export async function getArticles(): Promise<Article[]> {
@@ -30,12 +29,30 @@ const FULL_DATE = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
 });
 
+const twoDigits = (value: number): string => String(value).padStart(2, '0');
+
 /** "June 2026" — for listings. */
 export const formatMonthYear = (d: Date): string => MONTH_YEAR.format(d);
 /** "9 June 2026" — for the article header. */
 export const formatFullDate = (d: Date): string => FULL_DATE.format(d);
 /** Machine-readable date for <time datetime>. */
 export const isoDate = (d: Date): string => d.toISOString().slice(0, 10);
+/** "2026 · 07 · 28" — compact date treatment used in the reference design. */
+export const formatDotDate = (d: Date): string =>
+  `${d.getFullYear()} · ${twoDigits(d.getMonth() + 1)} · ${twoDigits(d.getDate())}`;
+
+export const tagSlug = (tag: string): string =>
+  tag
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+export const readingMinutes = (entry: Article): number => {
+  const text = `${entry.data.summary} ${entry.body ?? ''}`.trim();
+  const words = text ? text.split(/\s+/).length : 0;
+  return Math.max(1, Math.ceil(words / 220));
+};
 
 export interface ResolvedConnection {
   entry: Article;

@@ -1,0 +1,108 @@
+---
+const websiteId =
+  import.meta.env.PUBLIC_UMAMI_WEBSITE_ID?.trim() ||
+  'fd2d9ed6-86b2-4931-a76d-7514d3c720bf';
+const scriptUrl =
+  import.meta.env.PUBLIC_UMAMI_SCRIPT_URL?.trim() || 'https://cloud.umami.is/script.js';
+const domains = import.meta.env.PUBLIC_UMAMI_DOMAINS?.trim() || 'jjw.fyi,www.jjw.fyi';
+const enabled = import.meta.env.PROD && Boolean(websiteId);
+---
+
+{
+  enabled && (
+    <>
+      <script
+        is:inline
+        defer
+        src={scriptUrl}
+        data-website-id={websiteId}
+        data-domains={domains}
+        data-performance="true"
+      ></script>
+
+      <script is:inline>
+        {`
+          (() => {
+            if (window.__jjwAnalyticsBound) return;
+            window.__jjwAnalyticsBound = true;
+
+            const milestones = [15, 30, 60, 120, 300];
+            let activePage = '';
+            let timers = [];
+
+            const track = (name, data) => {
+              if (window.umami && typeof window.umami.track === 'function') {
+                window.umami.track(name, data);
+              }
+            };
+
+            const scrollDepth = () => {
+              const documentHeight = Math.max(
+                document.documentElement.scrollHeight,
+                document.body.scrollHeight,
+              );
+              const viewportBottom = window.scrollY + window.innerHeight;
+              return Math.min(100, Math.round((viewportBottom / documentHeight) * 100));
+            };
+
+            const clearTimers = () => {
+              for (const timer of timers) window.clearTimeout(timer);
+              timers = [];
+            };
+
+            const startPageTimer = () => {
+              const page = window.location.pathname + window.location.search;
+              if (page === activePage) return;
+
+              activePage = page;
+              clearTimers();
+              timers = milestones.map((seconds) =>
+                window.setTimeout(() => {
+                  if (activePage !== page || document.visibilityState !== 'visible') return;
+                  track('reading-engagement', {
+                    path: page,
+                    seconds,
+                    scroll: scrollDepth(),
+                  });
+                }, seconds * 1000),
+              );
+            };
+
+            document.addEventListener('click', (event) => {
+              const target = event.target instanceof Element ? event.target : null;
+              const link = target?.closest('a[href]');
+
+              if (link) {
+                const url = new URL(link.href, window.location.href);
+                const internal = url.origin === window.location.origin;
+                track(internal ? 'internal-link-click' : 'outbound-link-click', {
+                  from: window.location.pathname,
+                  target: internal ? url.pathname : url.hostname,
+                  label: (link.textContent || '').trim().slice(0, 80),
+                });
+                return;
+              }
+
+              const button = target?.closest('button');
+              if (button) {
+                track('button-click', {
+                  path: window.location.pathname,
+                  label: (button.textContent || '').trim().slice(0, 80),
+                });
+              }
+            });
+
+            document.addEventListener('astro:before-swap', clearTimers);
+            document.addEventListener('astro:page-load', startPageTimer);
+
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', startPageTimer, { once: true });
+            } else {
+              startPageTimer();
+            }
+          })();
+        `}
+      </script>
+    </>
+  )
+}

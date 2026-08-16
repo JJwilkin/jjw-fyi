@@ -11,106 +11,51 @@ interface Props {
   gallery: Gallery | undefined;
 }
 
-const { title, medium, date, summary, tags = [], gallery } = Astro.props;
+const { title, date, summary, tags = [], gallery } = Astro.props;
 ---
 
 <header class="plaque">
-  <div class="plaque__head">
-    <span class="eyebrow">{medium}</span>
-    {
-      gallery && (
-        <a class="plaque__section" href={galleryUrl(gallery.slug)}>
-          {gallery.title}
-        </a>
-      )
-    }
-  </div>
-
   <h1 class="plaque__title">{title}</h1>
 
-  <dl class="plaque__meta">
-    <div>
-      <dt>Written</dt>
-      <dd><time datetime={isoDate(date)}>{formatFullDate(date)}</time></dd>
-    </div>
+  <p class="plaque__meta">
+    <time datetime={isoDate(date)}>{formatFullDate(date)}</time>
     {
-      tags.length > 0 && (
-        <div>
-          <dt>Tags</dt>
-          <dd>{tags.join(' · ')}</dd>
-        </div>
+      gallery && (
+        <>
+          &nbsp;│ <a href={galleryUrl(gallery.slug)}>{gallery.title.toLowerCase()}</a>
+        </>
       )
     }
-  </dl>
+    {tags.length > 0 && <> · {tags.join(', ')}</>}
+  </p>
 
   <p class="plaque__summary">{summary}</p>
 </header>
 
 <style>
   .plaque {
-    background: var(--paper-raised);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: var(--radius);
-    padding: clamp(1.2rem, 3vw, 1.9rem);
-  }
-
-  .plaque__head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.5rem 1rem;
-  }
-  .plaque__section {
-    font-family: var(--font-ui);
-    font-size: 0.72rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    text-decoration: none;
-    color: var(--accent);
-  }
-  .plaque__section:hover {
-    text-decoration: underline;
-    text-underline-offset: 0.18em;
+    padding-top: 0.875rem;
   }
 
   .plaque__title {
-    font-size: clamp(1.7rem, 1.3rem + 1.8vw, 2.5rem);
+    margin: 0 0 0.875rem;
+    font-family: var(--font-body);
+    font-size: clamp(2rem, 7vw, 2.5rem);
+    letter-spacing: 0;
     line-height: 1.12;
-    margin: 0.5rem 0 0;
   }
 
   .plaque__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 2rem;
-    margin: 1.1rem 0 0;
-    padding: 0.9rem 0 0;
-    border-top: 1px solid var(--border-faint);
-  }
-  .plaque__meta div {
-    min-width: 0;
-  }
-  .plaque__meta dt {
-    font-family: var(--font-ui);
-    font-size: 0.66rem;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
-    color: var(--ink-faint);
-  }
-  .plaque__meta dd {
-    font-family: var(--font-ui);
-    font-size: 0.92rem;
-    margin: 0.15rem 0 0;
-    color: var(--ink);
+    margin: 0 0 1.75rem;
+    color: var(--ink-secondary);
+    font-size: 0.9rem;
+    line-height: 1.4;
   }
 
   .plaque__summary {
-    margin: 1.1rem 0 0;
-    font-size: 1.1rem;
-    line-height: 1.55;
+    margin: 0 0 1.75rem;
     color: var(--ink-secondary);
-    max-width: 52ch;
+    font-size: 1.1rem;
+    line-height: 1.6;
   }
 </style>

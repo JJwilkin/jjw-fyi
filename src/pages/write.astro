@@ -1,0 +1,755 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { galleries } from '../data/galleries';
+
+const isDev = import.meta.env.DEV;
+const today = new Date().toISOString().slice(0, 10);
+---
+
+<BaseLayout
+  title="Write"
+  description="A local Markdown editor for articles in this repository."
+  width="full"
+>
+  {
+    isDev ? (
+      <section class="writer" data-writer data-today={today}>
+        <header class="writer__bar">
+          <div class="writer__documents">
+            <select data-document aria-label="Open document">
+              <option value="">New document</option>
+            </select>
+            <button class="quiet" type="button" data-new>New</button>
+          </div>
+
+          <div class="writer__actions">
+            <details class="options">
+              <summary>Options</summary>
+              <div class="options__panel">
+                <label>
+                  <span>Date</span>
+                  <input name="date" type="date" value={today} />
+                </label>
+
+                <label>
+                  <span>Section</span>
+                  <select name="gallery">
+                    {galleries.map((gallery) => <option value={gallery.slug}>{gallery.title}</option>)}
+                  </select>
+                </label>
+
+                <label>
+                  <span>Format</span>
+                  <input name="medium" type="text" value="Essay" maxlength="80" />
+                </label>
+
+                <label class="tag-field">
+                  <span>Tags</span>
+                  <div class="tag-editor" data-tag-editor>
+                    <input
+                      class="tag-editor__input"
+                      data-tag-input
+                      type="text"
+                      aria-label="Add a tag"
+                      autocomplete="off"
+                      placeholder="Add a tag…"
+                    />
+                  </div>
+                </label>
+
+                <label class="wide">
+                  <span>Summary</span>
+                  <textarea
+                    name="summary"
+                    rows="3"
+                    maxlength="500"
+                    placeholder="Defaults to the first paragraph."
+                  />
+                </label>
+
+                <label class="check wide">
+                  <input name="featured" type="checkbox" />
+                  <span>Feature on homepage</span>
+                </label>
+
+                <div class="options__foot wide">
+                  <code data-location>src/content/articles/new-document.md</code>
+                  <button class="danger" type="button" data-delete disabled>Delete document</button>
+                </div>
+              </div>
+            </details>
+
+            <button class="quiet" type="button" data-save>Save draft</button>
+            <button class="primary" type="button" data-publish>Publish</button>
+          </div>
+        </header>
+
+        <div class="document">
+          <textarea
+            data-source
+            aria-label="Markdown document"
+            spellcheck="true"
+            autocomplete="off"
+            placeholder={'# Your title\n\nStart writing…'}
+          />
+
+          <footer class="document__status">
+            <span data-status>Ready.</span>
+            <span data-count>0 words</span>
+          </footer>
+        </div>
+      </section>
+    ) : (
+      <section class="local-only measure">
+        <p class="eyebrow">Local only</p>
+        <h1>Write on your machine.</h1>
+        <p>
+          Start the development server and open <code>/write/</code>. Publishing writes Markdown to
+          this repository; the live site updates after you commit and push.
+        </p>
+        <a href="/">← Back home</a>
+      </section>
+    )
+  }
+</BaseLayout>
+
+<script is:inline>
+  function bindWriter() {
+    const root = document.querySelector('[data-writer]');
+    if (!root || root.dataset.bound === 'true') return;
+    root.dataset.bound = 'true';
+
+    const documentSelect = root.querySelector('[data-document]');
+    const source = root.querySelector('[data-source]');
+    const status = root.querySelector('[data-status]');
+    const count = root.querySelector('[data-count]');
+    const location = root.querySelector('[data-location]');
+    const deleteButton = root.querySelector('[data-delete]');
+    const tagEditor = root.querySelector('[data-tag-editor]');
+    const tagInput = root.querySelector('[data-tag-input]');
+    const today = root.dataset.today;
+    let articles = [];
+    let current = null;
+    let tags = [];
+
+    const field = (name) => root.querySelector(`[name="${name}"]`);
+
+    function slugify(text) {
+      return text
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'untitled';
+    }
+
+    function parseDocument() {
+      const lines = source.value.replace(/\r\n/g, '\n').split('\n');
+      while (lines.length && !lines[0].trim()) lines.shift();
+      const heading = lines[0]?.match(/^#\s+(.+?)\s*$/);
+
+      if (!heading) throw new Error('Start the document with “# Your title”.');
+
+      const title = heading[1].trim();
+      const body = lines.slice(1).join('\n').trim();
+      if (!body) throw new Error('Write something beneath the title.');
+
+      return { title, body };
+    }
+
+    function deriveSummary(body) {
+      const paragraph = body
+        .split(/\n\s*\n/)
+        .find((block) => !/^\s*(#|```|>|!\[|[-*+]\s)/.test(block));
+
+      return (paragraph || '')
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+        .replace(/[*_`~]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 500);
+    }
+
+    function documentParts() {
+      try {
+        return parseDocument();
+      } catch {
+        return { title: 'Untitled', body: '' };
+      }
+    }
+
+    function resizeEditor() {
+      source.style.height = 'auto';
+      source.style.height = `${Math.max(520, source.scrollHeight)}px`;
+    }
+
+    function updateDocumentInfo() {
+      const { title, body } = documentParts();
+      const words = body ? body.split(/\s+/).filter(Boolean).length : 0;
+      const slug = current?.slug || slugify(title);
+      count.textContent = `${words} ${words === 1 ? 'word' : 'words'}`;
+      location.textContent = `src/content/articles/${slug}.md`;
+      resizeEditor();
+    }
+
+    function setStatus(message, kind = '') {
+      status.textContent = message;
+      status.dataset.kind = kind;
+    }
+
+    function setDirty() {
+      setStatus('Unsaved changes');
+      updateDocumentInfo();
+    }
+
+    function renderTags() {
+      for (const chip of tagEditor.querySelectorAll('.tag-chip')) chip.remove();
+
+      for (const [index, tag] of tags.entries()) {
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+
+        const text = document.createElement('span');
+        text.textContent = tag;
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.dataset.tagIndex = String(index);
+        remove.setAttribute('aria-label', `Remove ${tag}`);
+        remove.textContent = '×';
+
+        chip.append(text, remove);
+        tagEditor.insertBefore(chip, tagInput);
+      }
+    }
+
+    function setTags(nextTags) {
+      tags = [...new Set(nextTags.map((tag) => String(tag).trim()).filter(Boolean))].slice(0, 20);
+      tagInput.value = '';
+      renderTags();
+    }
+
+    function addTags(value) {
+      const additions = value
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+
+      tagInput.value = '';
+      if (!additions.length) return;
+
+      const knownTags = new Set(tags.map((tag) => tag.toLocaleLowerCase()));
+      const nextTags = [...tags];
+      for (const tag of additions) {
+        const key = tag.toLocaleLowerCase();
+        if (!knownTags.has(key) && nextTags.length < 20) {
+          knownTags.add(key);
+          nextTags.push(tag);
+        }
+      }
+
+      if (nextTags.length !== tags.length) {
+        tags = nextTags;
+        renderTags();
+        setDirty();
+      }
+    }
+
+    function resetDocument() {
+      current = null;
+      documentSelect.value = '';
+      source.value = '# Untitled\n\n';
+      field('date').value = today;
+      field('gallery').value = 'writing';
+      field('medium').value = 'Essay';
+      setTags([]);
+      field('summary').value = '';
+      field('featured').checked = false;
+      deleteButton.disabled = true;
+      setStatus('New document.');
+      updateDocumentInfo();
+      source.focus();
+      source.setSelectionRange(source.value.length, source.value.length);
+    }
+
+    function openDocument(slug) {
+      const article = articles.find((item) => item.slug === slug);
+      if (!article) return resetDocument();
+
+      current = article;
+      documentSelect.value = article.slug;
+      source.value = `# ${article.title}\n\n${article.body}`;
+      field('date').value = article.date;
+      field('gallery').value = article.gallery;
+      field('medium').value = article.medium;
+      setTags(article.tags);
+      field('summary').value = article.summary;
+      field('featured').checked = article.featured;
+      deleteButton.disabled = false;
+      setStatus(article.draft ? 'Draft.' : 'Published.', 'success');
+      updateDocumentInfo();
+      source.focus();
+    }
+
+    function populateDocuments(selectedSlug = '') {
+      documentSelect.replaceChildren(new Option('New document', ''));
+      for (const article of articles) {
+        const suffix = article.draft ? ' — draft' : '';
+        documentSelect.append(new Option(`${article.title}${suffix}`, article.slug));
+      }
+      documentSelect.value = selectedSlug;
+    }
+
+    async function loadArticles(selectedSlug = '') {
+      const response = await fetch('/__editor/articles', { cache: 'no-store' });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Could not load documents.');
+      articles = payload.articles;
+      populateDocuments(selectedSlug);
+    }
+
+    async function saveDocument(draft) {
+      const { title, body } = parseDocument();
+      addTags(tagInput.value);
+      const summary = field('summary').value.trim() || deriveSummary(body);
+
+      setStatus(draft ? 'Saving draft…' : 'Publishing…');
+
+      const response = await fetch('/__editor/articles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originalSlug: current?.slug || '',
+          slug: current?.slug || slugify(title),
+          title,
+          date: field('date').value,
+          gallery: field('gallery').value,
+          medium: field('medium').value.trim() || 'Essay',
+          summary,
+          tags,
+          featured: field('featured').checked,
+          draft,
+          body,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Could not save the document.');
+
+      await loadArticles(payload.article.slug);
+      openDocument(payload.article.slug);
+      setStatus(draft ? 'Draft saved.' : 'Published to the repository.', 'success');
+    }
+
+    source.addEventListener('input', setDirty);
+
+    tagEditor.addEventListener('click', (event) => {
+      const remove = event.target.closest('[data-tag-index]');
+      if (remove) {
+        tags.splice(Number(remove.dataset.tagIndex), 1);
+        renderTags();
+        setDirty();
+      }
+      tagInput.focus();
+    });
+
+    tagInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ',') {
+        event.preventDefault();
+        addTags(tagInput.value);
+      } else if (event.key === 'Backspace' && !tagInput.value && tags.length) {
+        tags.pop();
+        renderTags();
+        setDirty();
+      }
+    });
+
+    tagInput.addEventListener('blur', () => addTags(tagInput.value));
+    tagInput.addEventListener('paste', (event) => {
+      const pasted = event.clipboardData?.getData('text') || '';
+      if (!pasted.includes(',')) return;
+      event.preventDefault();
+      addTags(pasted);
+    });
+
+    for (const input of root.querySelectorAll('.options input, .options textarea, .options select')) {
+      input.addEventListener('input', () => {
+        setStatus('Unsaved changes');
+      });
+    }
+
+    documentSelect.addEventListener('change', () => openDocument(documentSelect.value));
+    root.querySelector('[data-new]').addEventListener('click', resetDocument);
+
+    root.querySelector('[data-save]').addEventListener('click', () => {
+      saveDocument(true).catch((error) => setStatus(error.message, 'error'));
+    });
+
+    root.querySelector('[data-publish]').addEventListener('click', () => {
+      saveDocument(false).catch((error) => setStatus(error.message, 'error'));
+    });
+
+    deleteButton.addEventListener('click', async () => {
+      if (!current || !window.confirm(`Delete “${current.title}”?`)) return;
+
+      try {
+        const response = await fetch(`/__editor/articles/${encodeURIComponent(current.slug)}`, {
+          method: 'DELETE',
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'Could not delete the document.');
+        await loadArticles();
+        resetDocument();
+        setStatus('Document deleted.', 'success');
+      } catch (error) {
+        setStatus(error.message || 'Could not delete the document.', 'error');
+      }
+    });
+
+    source.addEventListener('keydown', (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        saveDocument(true).catch((error) => setStatus(error.message, 'error'));
+      }
+    });
+
+    window.addEventListener('resize', resizeEditor);
+    resetDocument();
+    loadArticles().catch((error) => setStatus(error.message, 'error'));
+  }
+
+  document.addEventListener('astro:page-load', bindWriter);
+  bindWriter();
+</script>
+
+<style>
+  .writer {
+    padding-top: 26px;
+  }
+
+  .writer__bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--blue-pale);
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  .writer__documents,
+  .writer__actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .writer__documents select {
+    max-width: 20rem;
+    padding: 8px 26px 8px 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink-secondary);
+    font-family: var(--font-ui);
+    font-size: 11px;
+  }
+
+  button,
+  .options summary {
+    padding: 9px 13px;
+    border: 1px solid var(--blue-pale);
+    background: transparent;
+    color: var(--blue);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .primary {
+    border-color: var(--blue-deep);
+    background: var(--blue-deep);
+    color: var(--paper);
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  .options {
+    position: relative;
+  }
+
+  .options summary {
+    list-style: none;
+  }
+
+  .options summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .options[open] summary {
+    border-color: var(--blue-deep);
+    color: var(--blue-deep);
+  }
+
+  .options__panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: min(36rem, calc(100vw - 44px));
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 20px;
+    border: 1px solid var(--blue-pale);
+    background: var(--paper);
+    box-shadow: 0 12px 36px rgba(22, 32, 58, 0.14);
+  }
+
+  .options label {
+    display: grid;
+    gap: 6px;
+  }
+
+  .options label > span {
+    color: var(--ink-faint);
+    font-family: var(--font-ui);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .options input,
+  .options textarea,
+  .options select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--blue-pale);
+    border-radius: 0;
+    background: var(--paper-raised);
+    color: var(--ink);
+    font: inherit;
+  }
+
+  .options textarea {
+    resize: vertical;
+  }
+
+  .options .tag-field {
+    align-content: start;
+  }
+
+  .tag-editor {
+    display: flex;
+    min-height: 39px;
+    align-items: center;
+    align-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border: 1px solid var(--blue-pale);
+    background: var(--paper-raised);
+    cursor: text;
+  }
+
+  .tag-editor:focus-within {
+    border-color: var(--blue);
+  }
+
+  :global(.tag-chip) {
+    display: inline-flex;
+    height: 26px;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 4px;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 3px 5px 3px 9px;
+    border: 1px solid var(--blue-pale);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--blue-pale) 22%, var(--paper));
+    color: var(--blue-deep);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  :global(.tag-chip > span) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :global(.tag-chip button) {
+    display: grid;
+    width: 18px;
+    height: 18px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: var(--blue);
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  :global(.tag-chip button:hover) {
+    background: var(--blue-pale);
+    color: var(--blue-deep);
+  }
+
+  .options .tag-editor__input {
+    min-width: 8rem;
+    height: 26px;
+    flex: 1 1 8rem;
+    width: auto;
+    padding: 2px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 12px;
+    line-height: 22px;
+  }
+
+  .options .wide {
+    grid-column: 1 / -1;
+  }
+
+  .options .check {
+    display: flex;
+    align-items: center;
+  }
+
+  .options .check input {
+    width: auto;
+  }
+
+  .options__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .options__foot code {
+    overflow: hidden;
+    color: var(--ink-faint);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .danger {
+    flex: none;
+    border-color: #bd6a66;
+    color: #9e2f2a;
+  }
+
+  .document {
+    width: min(760px, 100%);
+    margin: 0 auto;
+    padding: 54px 0 100px;
+  }
+
+  [data-source] {
+    display: block;
+    width: 100%;
+    min-height: 520px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    caret-color: var(--blue);
+    font-family: var(--font-body);
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 1.72;
+    resize: none;
+    tab-size: 2;
+  }
+
+  [data-source]::placeholder {
+    color: #a8a49d;
+    opacity: 1;
+  }
+
+  .document__status {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    color: var(--ink-faint);
+    font-family: var(--font-ui);
+    font-size: 10px;
+  }
+
+  [data-status][data-kind='success'] {
+    color: #39734d;
+  }
+
+  [data-status][data-kind='error'] {
+    color: #9e2f2a;
+  }
+
+  .local-only {
+    padding-top: 44px;
+  }
+
+  .local-only h1 {
+    margin: 12px 0 24px;
+  }
+
+  @media (max-width: 760px) {
+    .writer {
+      padding-top: 10px;
+    }
+
+    .writer__bar {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .writer__documents,
+    .writer__actions {
+      width: 100%;
+    }
+
+    .writer__documents select {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .writer__actions {
+      justify-content: flex-end;
+    }
+
+    .options__panel {
+      position: fixed;
+      top: 126px;
+      right: 22px;
+      left: 22px;
+      width: auto;
+      max-height: calc(100vh - 150px);
+      overflow-y: auto;
+    }
+
+    .document {
+      padding: 38px 0 80px;
+    }
+
+    [data-source] {
+      font-size: 18px;
+      line-height: 1.7;
+    }
+  }
+</style>

@@ -32,6 +32,8 @@ const articles = defineCollection({
     connections: z.array(z.string()).default([]),
     /** Optional cover image path under /public. */
     cover: z.string().optional(),
+    /** Pin to the short featured list on the homepage. */
+    featured: z.boolean().default(false),
     /** Hidden from listings while true. */
     draft: z.boolean().default(false),
   }),
