@@ -23,7 +23,7 @@ const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
 
 <BaseLayout>
   <div class="home">
-    <section class="feed" aria-label="Recent writing">
+    <section class="feed" aria-label="Recent writing" data-feed>
       {
         articles.length > 0 ? (
           articles.map((entry) => {
@@ -34,7 +34,7 @@ const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
                 : [gallery?.title ?? entry.data.medium];
 
             return (
-              <article class="post">
+              <article class="post" data-feed-item>
                 <div class="post__meta">
                   <time datetime={isoDate(entry.data.date)}>{formatDotDate(entry.data.date)}</time>
                   <span class="post__tags">
@@ -56,6 +56,11 @@ const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
             <p>Nothing published yet.</p>
             {isDev && <a href="/write/">Open the local editor →</a>}
           </div>
+        )
+      }
+      {
+        articles.length > 5 && (
+          <button class="feed__more" type="button" data-show-more hidden>Show more</button>
         )
       }
     </section>
@@ -85,6 +90,39 @@ const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
     </aside>
   </div>
 </BaseLayout>
+
+<script is:inline>
+  function bindArticleFeed() {
+    const feed = document.querySelector('[data-feed]');
+    if (!feed || feed.dataset.bound === 'true') return;
+    feed.dataset.bound = 'true';
+
+    const items = [...feed.querySelectorAll('[data-feed-item]')];
+    const button = feed.querySelector('[data-show-more]');
+    const pageSize = 5;
+    let visible = pageSize;
+
+    if (!button || items.length <= pageSize) return;
+
+    function updateFeed() {
+      for (const [index, item] of items.entries()) item.hidden = index >= visible;
+
+      const remaining = Math.max(0, items.length - visible);
+      button.hidden = remaining === 0;
+      button.textContent = remaining > 0 ? `Show more · ${remaining} remaining` : 'All articles shown';
+    }
+
+    button.addEventListener('click', () => {
+      visible = Math.min(items.length, visible + pageSize);
+      updateFeed();
+    });
+
+    updateFeed();
+  }
+
+  document.addEventListener('astro:page-load', bindArticleFeed);
+  bindArticleFeed();
+</script>
 
 <style>
   .home {
@@ -164,6 +202,24 @@ const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
     font-family: var(--font-ui);
     font-size: 11px;
     line-height: 1;
+  }
+
+  .feed__more {
+    width: 100%;
+    margin-top: 20px;
+    padding: 13px 16px;
+    border: 1px solid var(--blue-pale);
+    background: transparent;
+    color: var(--blue);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+  }
+
+  .feed__more:hover {
+    border-color: var(--blue);
+    background: var(--paper-sunk);
   }
 
   .empty p {
