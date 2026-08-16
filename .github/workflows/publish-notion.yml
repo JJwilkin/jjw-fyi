@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       notion_url:
-        description: Link to a Notion page connected to the integration
+        description: Public Notion page link containing its page ID
         required: true
         type: string
       tags:
@@ -67,7 +67,6 @@ jobs:
       - name: Import the Notion page
         id: article
         env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_URL: ${{ inputs.notion_url }}
           ARTICLE_TAGS: ${{ inputs.tags }}
           ARTICLE_GALLERY: ${{ inputs.gallery }}

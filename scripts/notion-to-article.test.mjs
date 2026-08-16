@@ -21,20 +21,23 @@ test('creates a safe article slug', () => {
 test('converts complete rich text formatting and links', () => {
   assert.equal(
     richTextToMarkdown([
-      {
-        type: 'text',
-        plain_text: 'linked',
-        href: 'https://example.com',
-        annotations: { bold: true, italic: false, strikethrough: false, code: false },
-      },
-      {
-        type: 'text',
-        plain_text: ' and code',
-        annotations: { bold: false, italic: false, strikethrough: false, code: true },
-      },
+      ['linked', [['b'], ['a', 'https://example.com']]],
+      [' and code', [['c']]],
     ]),
     '[**linked**](https://example.com)` and code`',
   );
+});
+
+test('requires a public Notion hostname and a link containing the page ID', () => {
+  assert.throws(() => notionPageIdFromUrl('https://example.com/0123456789abcdef0123456789abcdef'), {
+    name: 'Error',
+    message: 'Use a public notion.so or notion.site link.',
+  });
+  assert.throws(() => notionPageIdFromUrl('https://example.notion.site/short-name'), {
+    name: 'Error',
+    message:
+      'The public link must contain the page ID. Use Notion’s Share → Copy link instead of a custom short site URL.',
+  });
 });
 
 test('creates the complete Astro article document', () => {
@@ -70,4 +73,3 @@ A paragraph.
 `,
   );
 });
-
