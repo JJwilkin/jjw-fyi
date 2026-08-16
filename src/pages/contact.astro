@@ -1,0 +1,85 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Contact" description="Contact Josh J Wilkinson.">
+  <div class="contact-page">
+    <section class="contact-card" aria-labelledby="contact-name">
+      <p class="eyebrow">Contact</p>
+
+      <h1 id="contact-name">Josh J Wilkinson</h1>
+
+      <address>
+        <a href="mailto:joshjeffreywilkinson@gmail.com">joshjeffreywilkinson@gmail.com</a>
+        <a href="https://www.linkedin.com/in/jjwilkin">linkedin.com/in/jjwilkin</a>
+      </address>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .contact-page {
+    display: grid;
+    place-items: center;
+    padding-top: 44px;
+  }
+
+  .contact-card {
+    position: relative;
+    display: flex;
+    width: min(100%, 430px);
+    aspect-ratio: 1;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: clamp(30px, 7vw, 52px);
+    border: 1px solid var(--blue);
+    background: var(--paper);
+  }
+
+  .contact-card::after {
+    position: absolute;
+    inset: 5px;
+    border: 1px solid var(--blue-pale);
+    content: '';
+    pointer-events: none;
+  }
+
+  .contact-card h1 {
+    max-width: 8ch;
+  }
+
+  .contact-card address {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-style: normal;
+    line-height: 1.5;
+  }
+
+  .contact-card a {
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 760px) {
+    .contact-page {
+      padding-top: 30px;
+    }
+
+    .contact-card {
+      padding: 32px;
+    }
+
+    .contact-card h1 {
+      font-size: 32px;
+    }
+
+    .contact-card address {
+      font-size: 10px;
+    }
+  }
+</style>
