@@ -11,7 +11,6 @@ import {
 } from '../lib/content';
 
 const articles = await getArticles();
-const isDev = import.meta.env.DEV;
 const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
   .map((tag) => ({
     name: tag,
@@ -26,9 +25,8 @@ const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
     <section class="feed" aria-label="Recent writing" data-feed>
       <header class="preamble">
         <p>
-          I’m Josh J Wilkinson. I build systems—databases, distributed machinery, and the
-          unglamorous plumbing that keeps software upright under load—and write here about that
-          work and the ideas that escape its boundaries.
+          I'm Josh, I am a software engineer by trade and enjoy spending time taking photographs
+          and writing down my thoughts and philosophies.
         </p>
       </header>
       {
@@ -61,7 +59,6 @@ const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
         ) : (
           <div class="empty">
             <p>Nothing published yet.</p>
-            {isDev && <a href="/write/">Open the local editor →</a>}
           </div>
         )
       }

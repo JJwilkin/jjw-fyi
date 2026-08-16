@@ -1,0 +1,25 @@
+---
+import PhotoLayout from '../../layouts/PhotoLayout.astro';
+import PhotoCollectionWall from '../../components/PhotoCollectionWall.astro';
+import { photoCollections, type PhotoCollection } from '../../data/photoCollections';
+
+export function getStaticPaths() {
+  return photoCollections.map((collection) => ({
+    params: { slug: collection.slug },
+    props: { collection },
+  }));
+}
+
+interface Props {
+  collection: PhotoCollection;
+}
+
+const { collection } = Astro.props;
+---
+
+<PhotoLayout
+  title={collection.title}
+  description={`${collection.note} A photo collection by Josh J Wilkinson.`}
+>
+  <PhotoCollectionWall {collection} />
+</PhotoLayout>
