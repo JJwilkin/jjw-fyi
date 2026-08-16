@@ -1,12 +1,13 @@
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { NotionAPI } from 'notion-client';
-import { defaultMapImageUrl, getBlockTitle, getBlockValue, getTextContent } from 'notion-utils';
+import convertHeic from 'heic-convert';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 const ARTICLE_DIRECTORY = path.resolve('src/content/articles');
 const IMAGE_DIRECTORY = path.resolve('public/images/articles');
+const NOTION_API = 'https://api.notion.com/v1';
+const NOTION_VERSION = '2026-03-11';
 const GALLERIES = new Set([
   'systems', 'photography', 'nature', 'philosophy', 'projects', 'writing', 'travel', 'field-notes',
 ]);
@@ -17,7 +18,7 @@ export function notionPageIdFromUrl(value) {
   try {
     const url = new URL(raw);
     if (!url.hostname.endsWith('notion.so') && !url.hostname.endsWith('notion.site')) {
-      throw new Error('Use a public notion.so or notion.site link.');
+      throw new Error('Use a notion.so or notion.site link.');
     }
     candidates = [...url.pathname.split('/').reverse(), ...[...url.searchParams.values()].reverse()];
   } catch (error) {
@@ -30,7 +31,7 @@ export function notionPageIdFromUrl(value) {
     ?.toLowerCase();
   if (!id) {
     throw new Error(
-      'The public link must contain the page ID. Use Notion’s Share → Copy link instead of a custom short site URL.',
+      'The link must contain the page ID. Use Notion’s Share → Copy link instead of a custom short site URL.',
     );
   }
   return `${id.slice(0, 8)}-${id.slice(8, 12)}-${id.slice(12, 16)}-${id.slice(16, 20)}-${id.slice(20)}`;
@@ -47,196 +48,89 @@ export function slugify(value) {
     .replace(/-$/g, '');
 }
 
-function escapeMarkdown(value) {
-  return String(value).replace(/([\\`*_[\]<>])/g, '\\$1');
-}
-
-export function richTextToMarkdown(items = []) {
-  return items
-    .map((item) => {
-      const raw = String(item?.[0] ?? '');
-      const formats = Array.isArray(item?.[1]) ? item[1].filter(Array.isArray) : [];
-      const equation = formats.find(([type]) => type === 'e');
-      const external = formats.find(([type]) => type === '‣');
-      const page = formats.find(([type]) => type === 'p');
-      const date = formats.find(([type]) => type === 'd');
-      let text = equation
-        ? `$${equation[1]}$`
-        : external
-          ? escapeMarkdown(external[1]?.[1] || external[1]?.[0] || 'Link')
-          : page && (raw === '‣' || raw === '⁍')
-            ? 'Notion page'
-            : date && (raw === '‣' || raw === '⁍')
-              ? escapeMarkdown(date[1]?.start_date || 'Date')
-              : escapeMarkdown(raw);
-
-      if (formats.some(([type]) => type === 'c')) text = `\`${raw.replaceAll('`', '\\`')}\``;
-      else if (!equation) {
-        if (formats.some(([type]) => type === 'b')) text = `**${text}**`;
-        if (formats.some(([type]) => type === 'i')) text = `*${text}*`;
-        if (formats.some(([type]) => type === 's')) text = `~~${text}~~`;
-      }
-
-      const link = formats.find(([type]) => type === 'a' || type === 'lm')?.[1];
-      const href = link || external?.[1]?.[0] || (page?.[1] ? `https://www.notion.so/${page[1]}` : '');
-      return href ? `[${text}](${href})` : text;
-    })
-    .join('');
-}
-
-function plainText(items = []) {
-  return getTextContent(items).trim();
-}
-
-function indent(markdown, prefix = '  ') {
-  return markdown.split('\n').map((line) => (line ? `${prefix}${line}` : line)).join('\n');
-}
-
-function quote(markdown) {
-  return markdown.split('\n').map((line) => `> ${line}`.trimEnd()).join('\n');
-}
-
 function fileExtension(contentType, url) {
   const byType = {
     'image/avif': 'avif', 'image/gif': 'gif', 'image/jpeg': 'jpg', 'image/png': 'png',
-    'image/svg+xml': 'svg', 'image/webp': 'webp',
+    'image/svg+xml': 'svg', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif',
   };
   if (byType[contentType]) return byType[contentType];
   const extension = path.extname(new URL(url).pathname).slice(1).toLowerCase();
   return /^[a-z0-9]{2,5}$/.test(extension) ? extension : 'jpg';
 }
 
-function normalizeCodeLanguage(language) {
-  const normalized = String(language).trim().toLowerCase();
-  const aliases = { 'c++': 'cpp', 'c#': 'csharp', 'plain text': '' };
-  return aliases[normalized] ?? normalized.replace(/[^a-z0-9_+-]/g, '');
+export function notionPageTitle(page) {
+  const property = Object.values(page.properties ?? {}).find((value) => value.type === 'title');
+  return property?.title?.map((item) => item.plain_text ?? '').join('').trim() || 'Untitled';
 }
 
-function blockValue(recordMap, id) {
-  return getBlockValue(recordMap.block[id]);
+export function normalizeNotionMarkdown(markdown) {
+  return String(markdown)
+    .replace(/<callout(?:\s+([^>]*))?>\s*\n?([\s\S]*?)\n?\s*<\/callout>/g, (_match, attributes = '', content = '') => {
+      const icon = attributes.match(/\bicon="([^"]*)"/)?.[1] ?? '';
+      const lines = content.replace(/^\t/gm, '').trim().split('\n');
+      if (icon) lines[0] = `${icon} ${lines[0] ?? ''}`.trimEnd();
+      return lines.map((line) => `> ${line}`.trimEnd()).join('\n');
+    })
+    .replace(/<empty-block\s*\/>/g, '')
+    .replace(/[ \t]+\{color="[^"]*"\}(?=\n|$)/g, '')
+    .trim();
 }
 
-async function saveImage(block, context) {
-  const original = block.properties?.source?.[0]?.[0] || context.recordMap.signed_urls?.[block.id] || '';
-  if (!original) throw new Error('A Notion image is missing its URL.');
-  const source = defaultMapImageUrl(original, block) || original;
-  const response = await fetch(source, {
+export async function rewriteMarkdownImages(markdown, saveImage) {
+  const pattern = /!\[([^\]\n]*)\]\((?:<([^>\n]+)>|(https?:\/\/[^)\s]+))(?:\s+"[^"\n]*")?\)(?:[ \t]+\{[^}\n]*\})?/g;
+  let output = '';
+  let cursor = 0;
+  for (const match of markdown.matchAll(pattern)) {
+    output += markdown.slice(cursor, match.index);
+    output += `![${match[1]}](${await saveImage(match[2] || match[3])})`;
+    cursor = match.index + match[0].length;
+  }
+  return output + markdown.slice(cursor);
+}
+
+export function markdownSummary(markdown) {
+  const withoutCode = String(markdown).replace(/```[\s\S]*?```/g, '');
+  for (const block of withoutCode.split(/\n\s*\n/)) {
+    if (/^\s*(?:#{1,4}\s|[-*+]\s|\d+\.\s|>|<|!\[)/.test(block)) continue;
+    const text = block
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/[*_~`]/g, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+async function notionRequest(pageId, suffix, token) {
+  const response = await fetch(`${NOTION_API}/pages/${pageId}${suffix}`, {
     headers: {
-      Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
-      'User-Agent': 'Mozilla/5.0',
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Notion-Version': NOTION_VERSION,
     },
   });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.message || `Notion returned HTTP ${response.status}.`);
+  return payload;
+}
+
+async function downloadImage(source, slug, imageNumber) {
+  const response = await fetch(source);
   if (!response.ok) throw new Error(`Could not download a Notion image (${response.status}).`);
   const contentType = response.headers.get('content-type')?.split(';')[0];
-  const extension = fileExtension(contentType, source);
-  const image = Buffer.from(await response.arrayBuffer());
-  const filename = `${String(++context.imageNumber).padStart(2, '0')}.${extension}`;
-  const directory = path.join(IMAGE_DIRECTORY, context.slug);
+  let extension = fileExtension(contentType, source);
+  let image = Buffer.from(await response.arrayBuffer());
+  if (extension === 'heic' || extension === 'heif') {
+    image = Buffer.from(await convertHeic({ buffer: image, format: 'JPEG', quality: 0.86 }));
+    extension = 'jpg';
+  }
+  const filename = `${String(imageNumber).padStart(2, '0')}.${extension}`;
+  const directory = path.join(IMAGE_DIRECTORY, slug);
   await mkdir(directory, { recursive: true });
   await writeFile(path.join(directory, filename), image);
-  return `/images/articles/${context.slug}/${filename}`;
-}
-
-async function childrenToMarkdown(block, context) {
-  if (!block.content?.length) return '';
-  const children = block.content.map((id) => blockValue(context.recordMap, id)).filter(Boolean);
-  return blocksToMarkdown(children, context);
-}
-
-async function tableToMarkdown(block, context) {
-  const columns = block.format?.table_block_column_order ?? [];
-  const rows = (block.content ?? [])
-    .map((id) => blockValue(context.recordMap, id))
-    .filter((row) => row?.type === 'table_row')
-    .map((row) => columns.map((column) => richTextToMarkdown(row.properties?.[column])));
-  if (!rows.length || !columns.length) return '';
-  return [
-    `| ${rows[0].join(' | ')} |`,
-    `| ${columns.map(() => '---').join(' | ')} |`,
-    ...rows.slice(1).map((row) => `| ${row.join(' | ')} |`),
-  ].join('\n');
-}
-
-async function blockToMarkdown(block, context) {
-  const text = richTextToMarkdown(block.properties?.title);
-  const children = await childrenToMarkdown(block, context);
-  switch (block.type) {
-    case 'text': return [text, children].filter(Boolean).join('\n\n');
-    case 'header': return `# ${text}`;
-    case 'sub_header': return `## ${text}`;
-    case 'sub_sub_header':
-    case 'header_4': return `### ${text}`;
-    case 'bulleted_list': return `- ${text}${children ? `\n${indent(children)}` : ''}`;
-    case 'numbered_list': return `1. ${text}${children ? `\n${indent(children)}` : ''}`;
-    case 'to_do': {
-      const checked = block.properties?.checked?.[0]?.[0] === 'Yes';
-      return `- [${checked ? 'x' : ' '}] ${text}${children ? `\n${indent(children)}` : ''}`;
-    }
-    case 'quote': return quote([text, children].filter(Boolean).join('\n\n'));
-    case 'callout': {
-      const icon = block.format?.page_icon ? `${block.format.page_icon} ` : '';
-      return quote(`${icon}${text}${children ? `\n\n${children}` : ''}`);
-    }
-    case 'code': {
-      const language = normalizeCodeLanguage(plainText(block.properties?.language));
-      const caption = plainText(block.properties?.caption);
-      return `${caption ? `${escapeMarkdown(caption)}\n\n` : ''}\`\`\`${language}\n${plainText(block.properties?.title)}\n\`\`\``;
-    }
-    case 'image': {
-      const source = await saveImage(block, context);
-      const caption = plainText(block.properties?.caption) || plainText(block.properties?.alt_text);
-      return `![${escapeMarkdown(caption)}](${source})${caption ? `\n\n*${escapeMarkdown(caption)}*` : ''}`;
-    }
-    case 'divider': return '---';
-    case 'equation': return `$$\n${plainText(block.properties?.title)}\n$$`;
-    case 'bookmark': {
-      const url = plainText(block.properties?.link);
-      const label = plainText(block.properties?.title) || url;
-      return `[${escapeMarkdown(label)}](${url})`;
-    }
-    case 'embed':
-    case 'gist':
-    case 'video':
-    case 'figma':
-    case 'typeform':
-    case 'replit':
-    case 'codepen':
-    case 'excalidraw':
-    case 'tweet':
-    case 'maps':
-    case 'pdf':
-    case 'audio': {
-      const url = block.properties?.source?.[0]?.[0];
-      return url ? `[${block.type}](${url})` : '';
-    }
-    case 'file': {
-      const url = context.recordMap.signed_urls?.[block.id] || block.properties?.source?.[0]?.[0];
-      const label = plainText(block.properties?.title) || 'Download file';
-      return url ? `[${escapeMarkdown(label)}](${url})` : '';
-    }
-    case 'toggle': return `<details>\n<summary>${text}</summary>\n\n${children}\n\n</details>`;
-    case 'table': return tableToMarkdown(block, context);
-    case 'column_list':
-    case 'column':
-    case 'transclusion_container':
-    case 'transclusion_reference':
-    case 'tab': return children;
-    case 'page': return `## ${text || 'Untitled page'}`;
-    case 'external_object_instance': {
-      const url = block.format?.original_url;
-      return url ? `[${url}](${url})` : '';
-    }
-    case 'breadcrumb':
-    case 'table_of_contents': return '';
-    default:
-      throw new Error(`Unsupported Notion block type: ${block.type}. Convert or remove it before publishing.`);
-  }
-}
-
-async function blocksToMarkdown(blocks, context) {
-  const output = [];
-  for (const block of blocks) output.push(await blockToMarkdown(block, context));
-  return output.filter(Boolean).join('\n\n');
+  return `/images/articles/${slug}/${filename}`;
 }
 
 function publicationDate(value) {
@@ -290,22 +184,29 @@ export function createArticleSource(data) {
 
 async function main() {
   const args = parseArguments(process.argv.slice(2));
-  if (!args.url) throw new Error('Pass a public Notion page with --url.');
+  if (!args.url) throw new Error('Pass a Notion page with --url.');
   if (args.gallery && !GALLERIES.has(args.gallery)) throw new Error(`Unknown gallery: ${args.gallery}`);
+  const token = process.env.NOTION_TOKEN?.trim();
+  if (!token) throw new Error('Set NOTION_TOKEN to a Notion integration token with access to the page.');
 
   const pageId = notionPageIdFromUrl(args.url);
-  let recordMap;
+  let page;
+  let content;
   try {
-    recordMap = await new NotionAPI({ userTimeZone: 'Asia/Hong_Kong' }).getPage(pageId, {
-      fetchCollections: false,
-      signFileUrls: true,
-    });
+    [page, content] = await Promise.all([
+      notionRequest(pageId, '', token),
+      notionRequest(pageId, '/markdown', token),
+    ]);
   } catch (error) {
-    throw new Error(`Could not read the public Notion page. Confirm it is published: ${error.message}`);
+    throw new Error(`Could not read the Notion page. Confirm it is shared with the integration: ${error.message}`);
   }
-  const page = blockValue(recordMap, pageId);
-  if (!page || page.type !== 'page') throw new Error('The link does not point to a complete Notion page.');
-  const title = getBlockTitle(page, recordMap) || 'Untitled';
+  if (page.object !== 'page' || content.object !== 'page_markdown' || typeof content.markdown !== 'string') {
+    throw new Error('Notion returned an invalid page response.');
+  }
+  if (content.truncated || content.unknown_block_ids?.length || /<unknown\b/.test(content.markdown)) {
+    throw new Error('Notion could not convert every block. Remove unsupported blocks or share all child content.');
+  }
+  const title = notionPageTitle(page);
   const slug = slugify(title) || `notion-${pageId.slice(0, 8)}`;
   const filepath = path.join(ARTICLE_DIRECTORY, `${slug}.md`);
   try {
@@ -315,11 +216,11 @@ async function main() {
     if (error.code !== 'ENOENT') throw error;
   }
 
-  const blocks = (page.content ?? []).map((id) => blockValue(recordMap, id)).filter(Boolean);
-  const body = await blocksToMarkdown(blocks, { recordMap, slug, imageNumber: 0 });
-  if (!body.trim()) throw new Error('The public Notion page has no publishable content.');
-  const firstParagraph = blocks.find((block) => block.type === 'text' && plainText(block.properties?.title));
-  const summary = String(args.summary || plainText(firstParagraph?.properties?.title) || title).slice(0, 500);
+  let imageNumber = 0;
+  const normalized = normalizeNotionMarkdown(content.markdown);
+  const body = await rewriteMarkdownImages(normalized, (source) => downloadImage(source, slug, ++imageNumber));
+  if (!body.trim()) throw new Error('The Notion page has no publishable content.');
+  const summary = String(args.summary || markdownSummary(body) || title).slice(0, 500);
   const tags = [...new Set(String(args.tags ?? '').split(',').map((tag) => tag.trim()).filter(Boolean))];
   const source = createArticleSource({
     title,

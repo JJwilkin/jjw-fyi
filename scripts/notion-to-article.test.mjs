@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   createArticleSource,
+  markdownSummary,
+  normalizeNotionMarkdown,
+  notionPageTitle,
   notionPageIdFromUrl,
-  richTextToMarkdown,
+  rewriteMarkdownImages,
   slugify,
 } from './notion-to-article.mjs';
 
@@ -18,25 +21,67 @@ test('creates a safe article slug', () => {
   assert.equal(slugify('  Déjà Vu: Systems & Scale!  '), 'deja-vu-systems-scale');
 });
 
-test('converts complete rich text formatting and links', () => {
+test('reads the complete title from a Notion page response', () => {
   assert.equal(
-    richTextToMarkdown([
-      ['linked', [['b'], ['a', 'https://example.com']]],
-      [' and code', [['c']]],
-    ]),
-    '[**linked**](https://example.com)` and code`',
+    notionPageTitle({
+      properties: {
+        Name: {
+          type: 'title',
+          title: [{ plain_text: 'An ' }, { plain_text: 'article' }],
+        },
+      },
+    }),
+    'An article',
   );
 });
 
-test('requires a public Notion hostname and a link containing the page ID', () => {
+test('normalizes complete Notion Markdown for Astro', () => {
+  assert.equal(
+    normalizeNotionMarkdown(`# Heading {color="blue"}
+
+<callout icon="💡" color="yellow_bg">
+\tImportant **note**.
+\t
+\t- Child
+</callout>
+
+<empty-block/>`),
+    `# Heading
+
+> 💡 Important **note**.
+>
+> - Child`,
+  );
+});
+
+test('rewrites every complete image reference', async () => {
+  const saved = [];
+  const output = await rewriteMarkdownImages(
+    'Before\n\n![First](https://example.com/one.heic) {color="blue"}\n\n![Second](<https://example.com/two.png>)',
+    async (source) => {
+      saved.push(source);
+      return `/images/${saved.length}.jpg`;
+    },
+  );
+  assert.deepEqual(saved, ['https://example.com/one.heic', 'https://example.com/two.png']);
+  assert.equal(output, 'Before\n\n![First](/images/1.jpg)\n\n![Second](/images/2.jpg)');
+});
+
+test('uses the first complete prose paragraph as the summary', () => {
+  assert.equal(
+    markdownSummary('# Heading\n\n![Image](https://example.com/image.jpg)\n\nA **useful** [summary](https://example.com).'),
+    'A useful summary.',
+  );
+});
+
+test('requires a Notion hostname and a link containing the page ID', () => {
   assert.throws(() => notionPageIdFromUrl('https://example.com/0123456789abcdef0123456789abcdef'), {
     name: 'Error',
-    message: 'Use a public notion.so or notion.site link.',
+    message: 'Use a notion.so or notion.site link.',
   });
   assert.throws(() => notionPageIdFromUrl('https://example.notion.site/short-name'), {
     name: 'Error',
-    message:
-      'The public link must contain the page ID. Use Notion’s Share → Copy link instead of a custom short site URL.',
+    message: 'The link must contain the page ID. Use Notion’s Share → Copy link instead of a custom short site URL.',
   });
 });
 
