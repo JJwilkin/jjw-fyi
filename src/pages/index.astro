@@ -24,6 +24,13 @@ const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
 <BaseLayout>
   <div class="home">
     <section class="feed" aria-label="Recent writing" data-feed>
+      <header class="preamble">
+        <p>
+          I’m Josh J Wilkinson. I build systems—databases, distributed machinery, and the
+          unglamorous plumbing that keeps software upright under load—and write here about that
+          work and the ideas that escape its boundaries.
+        </p>
+      </header>
       {
         articles.length > 0 ? (
           articles.map((entry) => {
@@ -130,6 +137,21 @@ const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
     grid-template-columns: minmax(0, 1fr) 220px;
     gap: 64px;
     padding-top: 44px;
+  }
+
+  .preamble {
+    padding-bottom: 30px;
+    border-bottom: 1px solid var(--blue);
+  }
+
+  .preamble p {
+    max-width: 57ch;
+    margin: 0;
+    color: var(--ink-secondary);
+    font-size: 19px;
+    font-weight: 300;
+    line-height: 1.6;
+    text-wrap: pretty;
   }
 
   .post {
@@ -272,6 +294,15 @@ const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
     .home {
       display: block;
       padding-top: 16px;
+    }
+
+    .preamble {
+      padding-bottom: 24px;
+    }
+
+    .preamble p {
+      font-size: 17px;
+      line-height: 1.55;
     }
 
     .post {
