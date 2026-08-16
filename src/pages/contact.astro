@@ -5,9 +5,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <BaseLayout title="Contact" description="Contact Josh J Wilkinson.">
   <div class="contact-page">
     <section class="contact-card" aria-labelledby="contact-name">
-      <p class="eyebrow">Contact</p>
+      <div class="contact-card__intro">
+        <p class="eyebrow">Contact</p>
+        <p>
+          I’d love to learn about new opportunities and meet interesting people. Feel free to
+          reach out.
+        </p>
+      </div>
 
-      <h1 id="contact-name">Josh J Wilkinson</h1>
+      <h1 id="contact-name">Joshua Wilkinson</h1>
 
       <address>
         <a href="mailto:joshjeffreywilkinson@gmail.com">joshjeffreywilkinson@gmail.com</a>
@@ -26,12 +32,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   .contact-card {
     position: relative;
-    display: flex;
-    width: min(100%, 430px);
+    display: grid;
+    width: min(100%, 400px);
     aspect-ratio: 1;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: clamp(30px, 7vw, 52px);
+    grid-template-rows: auto 1fr auto;
+    padding: clamp(34px, 6vw, 46px);
     border: 1px solid var(--blue);
     background: var(--paper);
   }
@@ -45,7 +50,35 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   .contact-card h1 {
-    max-width: 8ch;
+    align-self: center;
+    max-width: none;
+    font-size: clamp(34px, 5vw, 42px);
+    line-height: 1.08;
+  }
+
+  .contact-card__intro {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .contact-card__intro p {
+    max-width: 34ch;
+    margin: 0;
+    color: var(--ink-secondary);
+    font-size: 13px;
+    font-weight: 300;
+    line-height: 1.5;
+  }
+
+  .contact-card__intro .eyebrow {
+    color: var(--blue);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.24em;
+    line-height: 1;
+    text-transform: uppercase;
   }
 
   .contact-card address {
@@ -71,15 +104,24 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
 
     .contact-card {
-      padding: 32px;
+      width: min(100%, 320px);
+      padding: 30px;
     }
 
     .contact-card h1 {
-      font-size: 32px;
+      font-size: 34px;
     }
 
     .contact-card address {
       font-size: 10px;
+    }
+
+    .contact-card__intro {
+      gap: 12px;
+    }
+
+    .contact-card__intro p {
+      font-size: 11px;
     }
   }
 </style>
