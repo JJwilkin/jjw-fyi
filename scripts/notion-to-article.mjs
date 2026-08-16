@@ -1,6 +1,7 @@
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import convertHeic from 'heic-convert';
 import { NotionAPI } from 'notion-client';
 import { getBlockTitle, getBlockValue, getTextContent } from 'notion-utils';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
@@ -121,11 +122,17 @@ async function saveImage(block, context) {
   if (!source) throw new Error('A Notion image is missing its URL.');
   const response = await fetch(source);
   if (!response.ok) throw new Error(`Could not download a Notion image (${response.status}).`);
-  const extension = fileExtension(response.headers.get('content-type')?.split(';')[0], source);
+  const contentType = response.headers.get('content-type')?.split(';')[0];
+  let extension = fileExtension(contentType, source);
+  let image = Buffer.from(await response.arrayBuffer());
+  if (extension === 'heic' || extension === 'heif' || contentType === 'image/heic' || contentType === 'image/heif') {
+    image = Buffer.from(await convertHeic({ buffer: image, format: 'JPEG', quality: 0.86 }));
+    extension = 'jpg';
+  }
   const filename = `${String(++context.imageNumber).padStart(2, '0')}.${extension}`;
   const directory = path.join(IMAGE_DIRECTORY, context.slug);
   await mkdir(directory, { recursive: true });
-  await writeFile(path.join(directory, filename), Buffer.from(await response.arrayBuffer()));
+  await writeFile(path.join(directory, filename), image);
   return `/images/articles/${context.slug}/${filename}`;
 }
 
