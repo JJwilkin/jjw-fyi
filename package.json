@@ -11,6 +11,7 @@
     "preview": "astro preview",
     "check": "astro check",
     "test:notion": "node --test scripts/notion-to-article.test.mjs",
+    "test:remove-article": "node --test scripts/remove-article.test.mjs",
     "import:notion": "node scripts/notion-to-article.mjs",
     "astro": "astro"
   },

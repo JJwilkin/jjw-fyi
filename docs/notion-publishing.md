@@ -28,6 +28,16 @@ request immediately or leave it open for review.
 Netlify deploys after the pull request reaches the main branch. The original Notion page is not
 changed or deleted.
 
+## Remove an article from a phone
+
+In the GitHub mobile app or mobile site, open **Actions → Remove an article → Run workflow**. Enter
+either the article slug (for example, `my-article`) or its complete `jjw.fyi/articles/...` URL.
+
+The Action removes the Markdown article, its repository-hosted image folder, and references to it
+from other articles' `connections` lists. It validates the complete site before creating a pull
+request. Leave **Merge after validation** on to remove it from the live site automatically, or turn
+it off to inspect the removal first.
+
 ## Supported Notion content
 
 The importer handles paragraphs, headings, bulleted and numbered lists, checkboxes, quotes,
@@ -53,4 +63,3 @@ npm run import:notion -- \
 ```
 
 The local command creates the Markdown file but does not commit or deploy it.
-

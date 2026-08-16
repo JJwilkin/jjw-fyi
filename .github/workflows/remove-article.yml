@@ -1,0 +1,92 @@
+name: Remove an article
+
+on:
+  workflow_dispatch:
+    inputs:
+      article:
+        description: Article slug or full jjw.fyi article URL
+        required: true
+        type: string
+      remove_now:
+        description: Merge after validation (turn off to review the PR first)
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: article-remover
+  cancel-in-progress: false
+
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Remove the article
+        id: article
+        env:
+          ARTICLE: ${{ inputs.article }}
+        run: node scripts/remove-article.mjs --article "$ARTICLE"
+
+      - name: Validate the generated site
+        run: |
+          npm run test:remove-article
+          npm run check
+          npm run build
+
+      - name: Create the removal pull request
+        id: pull_request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTICLE_TITLE: ${{ steps.article.outputs.title }}
+          ARTICLE_SLUG: ${{ steps.article.outputs.slug }}
+        run: |
+          branch="remove/article-${ARTICLE_SLUG}-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add --all src/content/articles public/images
+          git commit -m "Remove ${ARTICLE_TITLE}"
+          git push --set-upstream origin "$branch"
+          pr_url=$(gh pr create \
+            --base "${GITHUB_REF_NAME}" \
+            --head "$branch" \
+            --title "Remove: ${ARTICLE_TITLE}" \
+            --body "Removes the article, its stored images, and incoming article connections. The site build passed before this pull request was opened.")
+          echo "url=$pr_url" >> "$GITHUB_OUTPUT"
+
+      - name: Merge the removal
+        if: inputs.remove_now
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.pull_request.outputs.url }}
+        run: gh pr merge "$PR_URL" --squash --delete-branch
+
+      - name: Add the result to the run summary
+        env:
+          PR_URL: ${{ steps.pull_request.outputs.url }}
+          ARTICLE_TITLE: ${{ steps.article.outputs.title }}
+          REMOVE_NOW: ${{ inputs.remove_now }}
+        run: |
+          echo "## Removed ${ARTICLE_TITLE}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pull request: ${PR_URL}" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$REMOVE_NOW" == "true" ]]; then
+            echo "The pull request was merged. Netlify will remove the article on its next deploy." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The removal pull request is ready for review and merge." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
