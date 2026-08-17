@@ -4,6 +4,7 @@ import { ClientRouter } from 'astro:transitions';
 import Analytics from '../components/Analytics.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import PorcelainBand from '../components/PorcelainBand.astro';
 
 interface Props {
   title?: string;
@@ -62,7 +63,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   <body data-width={width}>
     <a class="skip-link" href="#main">Skip to content</a>
     <div class="site-canvas">
-      <div class="porcelain-band" aria-hidden="true"></div>
+      <PorcelainBand />
       <div class="site-paper">
         <div class="site-border">
           <div class="site-frame">

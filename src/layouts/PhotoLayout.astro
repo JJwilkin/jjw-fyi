@@ -2,13 +2,15 @@
 import '../styles/global.css';
 import { ClientRouter } from 'astro:transitions';
 import Analytics from '../components/Analytics.astro';
+import PorcelainBand from '../components/PorcelainBand.astro';
 
 interface Props {
   title: string;
   description: string;
+  transitionName: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, transitionName } = Astro.props;
 const siteName = 'Josh J Wilkinson';
 const fullTitle = `${title} · ${siteName}`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -45,8 +47,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <div class="photo-canvas">
-      <div class="porcelain-band" aria-hidden="true"></div>
+    <div class="photo-canvas" transition:name={transitionName}>
+      <PorcelainBand />
       <main id="main" tabindex="-1">
         <a class="collection-back" href="/photos/">← Photograph collections</a>
         <slot />

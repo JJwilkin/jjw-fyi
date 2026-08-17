@@ -110,3 +110,6 @@ export const photoImageSrcset = (id: string): string =>
   photoImageWidths.map((width) => `${photoImageUrl(id, width)} ${width}w`).join(', ');
 
 export const photoCollectionUrl = (slug: string): string => `/photos/${slug}/`;
+
+export const photoCollectionTransition = (slug: string): string =>
+  `photo-collection-${slug}`;

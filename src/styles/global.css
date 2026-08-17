@@ -75,14 +75,58 @@ body[data-width='full'] .site-canvas {
 }
 
 .porcelain-band {
+  position: relative;
+  z-index: 20;
   height: 9px;
-  background-color: var(--blue-deep);
-  background-image: repeating-linear-gradient(
-    90deg,
-    rgba(251, 250, 246, 0.7) 0 2px,
-    transparent 2px 9px
-  );
+  overflow: hidden;
+  background: var(--paper);
 }
+
+.porcelain-band__track {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: max-content;
+  height: 9px;
+  transform: translateX(-45px);
+  will-change: transform;
+}
+
+.porcelain-band__tile {
+  flex: 0 0 7px;
+  height: 7px;
+  background: var(--blue-deep);
+}
+
+::view-transition-group(photo-collection-between-concrete-and-water),
+::view-transition-group(photo-collection-along-the-tramlines),
+::view-transition-group(photo-collection-where-the-path-ends) {
+  animation-duration: 760ms;
+  animation-timing-function: cubic-bezier(0.22, 0.72, 0.2, 1);
+}
+
+::view-transition-old(photo-collection-between-concrete-and-water),
+::view-transition-old(photo-collection-along-the-tramlines),
+::view-transition-old(photo-collection-where-the-path-ends) {
+  animation: collection-sheet-out 760ms cubic-bezier(0.22, 0.72, 0.2, 1) both;
+}
+
+::view-transition-new(photo-collection-between-concrete-and-water),
+::view-transition-new(photo-collection-along-the-tramlines),
+::view-transition-new(photo-collection-where-the-path-ends) {
+  animation: collection-sheet-in 760ms cubic-bezier(0.22, 0.72, 0.2, 1) both;
+}
+
+@keyframes collection-sheet-out {
+  0%, 28% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes collection-sheet-in {
+  0%, 18% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
 
 .site-paper {
   padding: 30px;
@@ -598,6 +642,12 @@ blockquote {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(photo-collection-between-concrete-and-water),
+  ::view-transition-group(photo-collection-along-the-tramlines),
+  ::view-transition-group(photo-collection-where-the-path-ends) {
+    animation-duration: 1ms;
+  }
+
   .collection-card img {
     transition: none;
   }

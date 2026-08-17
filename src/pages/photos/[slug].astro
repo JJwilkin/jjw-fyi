@@ -1,7 +1,11 @@
 ---
 import PhotoLayout from '../../layouts/PhotoLayout.astro';
 import PhotoCollectionWall from '../../components/PhotoCollectionWall.astro';
-import { photoCollections, type PhotoCollection } from '../../data/photoCollections';
+import {
+  photoCollections,
+  photoCollectionTransition,
+  type PhotoCollection,
+} from '../../data/photoCollections';
 
 export function getStaticPaths() {
   return photoCollections.map((collection) => ({
@@ -20,6 +24,7 @@ const { collection } = Astro.props;
 <PhotoLayout
   title={collection.title}
   description={`${collection.note} A photo collection by Josh J Wilkinson.`}
+  transitionName={photoCollectionTransition(collection.slug)}
 >
   <PhotoCollectionWall {collection} />
 </PhotoLayout>
