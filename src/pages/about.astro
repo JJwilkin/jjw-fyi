@@ -9,7 +9,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <article class="about measure">
     <header class="about__head">
       <p class="eyebrow">About</p>
-      <h1 class="about__title">Josh J Wilkinson</h1>
+      <section class="contact-card" aria-labelledby="contact-name">
+        <h1 id="contact-name">Joshua Wilkinson</h1>
+        <address>
+          <a href="mailto:joshjeffreywilkinson@gmail.com">joshjeffreywilkinson@gmail.com</a>
+          <a href="https://www.linkedin.com/in/jjwilkin" target="_blank" rel="noopener noreferrer">
+            linkedin.com/in/jjwilkin
+          </a>
+        </address>
+      </section>
     </header>
 
     <div class="prose flow">
@@ -47,11 +55,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         durable.
       </p>
 
-      <h2>Say hello</h2>
-      <p>
-        Corrections, arguments, and recommendations of things to look at are all welcome. Write to
-        me at <a href="mailto:hello@jjw.fyi">hello@jjw.fyi</a>.
-      </p>
     </div>
   </article>
 </BaseLayout>
@@ -61,13 +64,60 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     padding-top: 44px;
   }
   .about__head {
-    margin-bottom: 32px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--blue);
+    margin-bottom: 38px;
   }
-  .about__title {
-    margin: 10px 0 0;
-    font-size: 44px;
+
+  .about__head > .eyebrow {
+    margin: 0 0 14px;
+  }
+
+  .contact-card {
+    position: relative;
+    display: grid;
+    aspect-ratio: 1.8 / 1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 30px;
+    padding: clamp(30px, 5vw, 42px);
+    border: 1px solid var(--blue);
+    background-color: var(--paper);
+    background-image: var(--paper-grain);
+    background-repeat: repeat;
+    background-size: 180px 180px;
+  }
+
+  .contact-card::after {
+    position: absolute;
+    inset: 5px;
+    border: 1px solid var(--blue-pale);
+    content: '';
+    pointer-events: none;
+  }
+
+  .contact-card h1 {
+    position: relative;
+    z-index: 1;
+    max-width: none;
+    font-size: clamp(36px, 5vw, 44px);
+    line-height: 0.98;
+    overflow-wrap: normal;
+  }
+
+  .contact-card address {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-style: normal;
+    line-height: 1.5;
+  }
+
+  .contact-card a {
+    overflow-wrap: anywhere;
   }
 
   .about :global(.prose) {
@@ -80,8 +130,25 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       padding-top: 30px;
     }
 
-    .about__title {
-      font-size: 33px;
+    .about__head {
+      margin-bottom: 32px;
+    }
+
+    .contact-card {
+      aspect-ratio: 1.55 / 1;
+      grid-template-columns: 1fr;
+      align-content: space-between;
+      align-items: start;
+      gap: 26px;
+      padding: 28px;
+    }
+
+    .contact-card h1 {
+      font-size: 38px;
+    }
+
+    .contact-card address {
+      font-size: 9px;
     }
   }
 </style>

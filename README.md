@@ -1,7 +1,7 @@
 # jjw.fyi
 
-The personal site of Josh J Wilkinson. It is a small Astro blog with a local writing interface and
-Markdown files as its only content store.
+The personal site of Josh J Wilkinson. It is a small Astro blog with Markdown files as its content
+store and a Notion-to-GitHub publishing workflow.
 
 ## Run it locally
 
@@ -10,47 +10,30 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:4321/](http://127.0.0.1:4321/) for the site and
-[http://127.0.0.1:4321/write/](http://127.0.0.1:4321/write/) for the editor.
-
-The editor is deliberately local-only. Its write API exists only inside Astro's development server
-and only accepts loopback requests.
+Open [http://127.0.0.1:4321/](http://127.0.0.1:4321/) for the site.
 
 ## Write and publish
 
-The writing screen supports:
+Write in a Notion page shared with the **JJW Blog Publisher** integration. In GitHub, run the
+**Publish a Notion article** workflow and provide the page link plus any tags and article metadata.
+The workflow imports the page and its images, validates the site, creates a pull request, and can
+merge it automatically so Netlify publishes the new revision.
 
-- a single, distraction-free Markdown document;
-- using the first `# Heading` as the article title;
-- deriving the slug and summary automatically for new articles;
-- opening and editing existing articles without losing their metadata;
-- drafts that stay off public pages;
-- published posts;
-- optional tags, section, date, format, summary, and homepage featuring;
-- deletion of article files.
-
-Every save creates or updates a file in `src/content/articles/`. There is no database or separate
-account system: access to the repository and local filesystem is the authorization boundary.
-
-Publishing has two distinct steps:
-
-1. Click **Publish** in `/write/`. This saves the Markdown file with `draft: false`.
-2. Commit and push the repository. The live host must run `npm run build` from the pushed revision.
-
-Until the second step happens, the article exists only on your machine.
+Use the **Remove an article** workflow with an article slug or full article URL to remove a post.
+Both workflows use repository pull requests as the publishing and authorization boundary.
 
 ## Useful commands
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Run the site and local editor with hot reload |
+| `npm run dev` | Run the site locally with hot reload |
 | `npm run check` | Type-check the Astro project |
 | `npm run build` | Build the static site |
 | `npm run preview` | Preview the production build |
 
 ## Content format
 
-The editor writes ordinary Markdown with YAML frontmatter:
+Imported articles are stored as ordinary Markdown with YAML frontmatter:
 
 ```md
 ---

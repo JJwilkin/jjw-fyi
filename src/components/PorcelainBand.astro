@@ -1,0 +1,15 @@
+---
+const tileCount = 170;
+---
+
+<div
+  class="porcelain-band"
+  data-porcelain-band
+  aria-hidden="true"
+>
+  <div class="porcelain-band__track" data-porcelain-track>
+    {
+      Array.from({ length: tileCount }, () => <span class="porcelain-band__tile" />)
+    }
+  </div>
+</div>

@@ -1,0 +1,160 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import {
+  photoCollections,
+  photoCollectionTransition,
+  photoCollectionUrl,
+  photoImageSrcset,
+  photoImageUrl,
+} from '../../data/photoCollections';
+---
+
+<BaseLayout
+  title="Photos"
+  description="Photography collections by Josh J Wilkinson."
+  hideFooter
+>
+  <div class="photos-index">
+    <h1 class="sr-only">Photo collections</h1>
+    <section class="collection-grid" aria-label="Photo collections">
+      {
+        photoCollections.map((collection, index) => {
+          const cover = collection.photos[0];
+          return (
+            <a
+              class={`collection-card collection-card--${index + 1}`}
+              href={photoCollectionUrl(collection.slug)}
+              transition:name={photoCollectionTransition(collection.slug)}
+            >
+              <figure
+                data-collection-preview
+                data-preview-images={JSON.stringify(
+                  collection.photos.map((photo) => photoImageUrl(photo.id, 1400)),
+                )}
+              >
+                <img
+                  class="collection-card__image collection-card__image--primary"
+                  src={photoImageUrl(cover.id, 1400)}
+                  srcset={photoImageSrcset(cover.id)}
+                  sizes="(max-width: 760px) 100vw, 58vw"
+                  alt=""
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  fetchpriority={index === 0 ? 'high' : 'auto'}
+                  style={`object-position:${cover.position ?? 'center'}`}
+                />
+                <img
+                  class="collection-card__image collection-card__image--secondary"
+                  src={photoImageUrl(cover.id, 1400)}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  style={`object-position:${cover.position ?? 'center'}`}
+                />
+              </figure>
+              <div class="collection-card__details">
+                <h2>{collection.title}</h2>
+                <p>{collection.photos.length} photographs</p>
+              </div>
+            </a>
+          );
+        })
+      }
+    </section>
+
+    <footer class="collection-footer">
+      <p>
+        {photoCollections.length} collections · {
+          photoCollections.reduce((total, collection) => total + collection.photos.length, 0)
+        } photographs
+      </p>
+      <p>Photography archive</p>
+    </footer>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+  function bindCollectionPreviews() {
+    const supportsHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!supportsHover || reduceMotion) return;
+
+    for (const card of document.querySelectorAll('.collection-card')) {
+      const figure = card.querySelector('[data-collection-preview]');
+      const primary = card.querySelector('.collection-card__image--primary');
+      const secondary = card.querySelector('.collection-card__image--secondary');
+      if (!(figure instanceof HTMLElement)) continue;
+      if (!(primary instanceof HTMLImageElement) || !(secondary instanceof HTMLImageElement)) continue;
+
+      const images = JSON.parse(figure.dataset.previewImages ?? '[]');
+      if (!Array.isArray(images) || images.length < 2) continue;
+
+      card.__collectionPreviewCleanup?.();
+      card.dataset.previewBound = 'true';
+      const controller = new AbortController();
+      const coverSrc = primary.getAttribute('src') ?? '';
+      const coverSrcset = primary.getAttribute('srcset') ?? '';
+      let timer;
+      let running = false;
+      let activeIndex = 0;
+      let secondaryVisible = false;
+      let generation = 0;
+
+      async function loadInto(image, src) {
+        image.removeAttribute('srcset');
+        image.src = src;
+        await image.decode().catch(() => {});
+      }
+
+      async function showNext(currentGeneration) {
+        activeIndex = (activeIndex + 1) % images.length;
+        const target = secondaryVisible ? primary : secondary;
+        await loadInto(target, images[activeIndex]);
+        if (currentGeneration !== generation) return;
+        secondaryVisible = !secondaryVisible;
+        secondary.classList.toggle('is-visible', secondaryVisible);
+      }
+
+      function startPreview() {
+        if (running) return;
+        running = true;
+        generation += 1;
+        const currentGeneration = generation;
+
+        async function advance() {
+          await showNext(currentGeneration);
+          if (!running || currentGeneration !== generation) return;
+          timer = window.setTimeout(advance, 2400);
+        }
+
+        timer = window.setTimeout(advance, 550);
+      }
+
+      async function stopPreview() {
+        running = false;
+        generation += 1;
+        window.clearTimeout(timer);
+        timer = undefined;
+        activeIndex = 0;
+
+        primary.setAttribute('srcset', coverSrcset);
+        primary.src = coverSrc;
+        await primary.decode().catch(() => {});
+        secondaryVisible = false;
+        secondary.classList.remove('is-visible');
+      }
+
+      card.__collectionPreviewCleanup = () => {
+        controller.abort();
+        stopPreview();
+      };
+
+      card.addEventListener('mouseenter', startPreview, { signal: controller.signal });
+      card.addEventListener('mouseleave', stopPreview, { signal: controller.signal });
+      card.addEventListener('focus', startPreview, { signal: controller.signal });
+      card.addEventListener('blur', stopPreview, { signal: controller.signal });
+    }
+  }
+
+  document.addEventListener('astro:page-load', bindCollectionPreviews);
+  bindCollectionPreviews();
+</script>

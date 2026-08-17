@@ -189,7 +189,10 @@ const tags = [...new Set(articles.flatMap((article) => article.data.tags))].sort
   .topic-grid article {
     min-height: 158px;
     padding: 26px 28px 28px;
-    background: var(--paper);
+    background-color: var(--paper);
+    background-image: var(--paper-grain);
+    background-repeat: repeat;
+    background-size: 180px 180px;
   }
 
   .topic-grid article:hover {

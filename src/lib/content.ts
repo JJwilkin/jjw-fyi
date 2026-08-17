@@ -3,7 +3,7 @@ import { getGallery, type Gallery, type GallerySlug } from '../data/galleries';
 
 export type Article = CollectionEntry<'articles'>;
 
-/** Public pages never include drafts; the local editor reads them from disk directly. */
+/** Public pages never include drafts. */
 const isPublished = (entry: Article): boolean => entry.data.draft !== true;
 
 /** All published articles, newest first. */

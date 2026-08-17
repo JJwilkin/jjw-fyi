@@ -3,10 +3,9 @@ const path = Astro.url.pathname;
 const isHome = path === '/';
 
 const links = [
+  { href: '/', label: 'Blog' },
+  { href: '/photos/', label: 'Photos' },
   { href: '/about/', label: 'About' },
-  { href: '/tags/', label: 'Tags' },
-  { href: '/contact/', label: 'Contact' },
-  ...(import.meta.env.DEV ? [{ href: '/write/', label: 'Write' }] : []),
 ];
 
 const isCurrent = (href: string) =>
@@ -18,7 +17,6 @@ const isCurrent = (href: string) =>
     <a class="wordmark" href="/" aria-label="Home" aria-current={isHome ? 'page' : undefined}>
       Josh J Wilkinson
     </a>
-    <span class="strapline">software · systems · writing</span>
   </div>
 
   <nav class="site-nav" aria-label="Primary">
@@ -59,18 +57,6 @@ const isCurrent = (href: string) =>
     line-height: 1;
   }
 
-  .strapline {
-    overflow: hidden;
-    color: var(--ink-faint);
-    font-family: var(--font-ui);
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    line-height: 1;
-    text-overflow: ellipsis;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
   .site-nav {
     display: flex;
     flex: none;
@@ -100,10 +86,6 @@ const isCurrent = (href: string) =>
       font-size: 17px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-    }
-
-    .strapline {
-      display: none;
     }
 
     .site-nav {
