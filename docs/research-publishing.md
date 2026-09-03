@@ -6,8 +6,9 @@ static Astro site whose published source of truth is Markdown in `src/content/ar
 
 For each newly selected source, the task creates one article with `gallery: research`, a concise
 spoken summary, the canonical source link, relevance to observability agents, a design question,
-and an evidence caveat. Existing canonical URLs are skipped. Research articles appear only under
-Research rather than in the main Blog feed.
+and an evidence caveat. Existing canonical URLs are skipped. It also advances the date in
+`src/data/researchRevision.ts`, ensuring Netlify rebuilds for a content-only publication. Research
+articles appear only under Research rather than in the main Blog feed.
 
 Each run works from a temporary worktree based on `origin/main`, leaving the primary checkout
 untouched. It runs the article tests, Astro checks, and the production build before opening one

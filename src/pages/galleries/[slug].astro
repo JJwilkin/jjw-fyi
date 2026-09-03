@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ArticleCard from '../../components/ArticleCard.astro';
 import { galleries, type Gallery } from '../../data/galleries';
+import { researchRevision } from '../../data/researchRevision';
 import { getArticlesByGallery } from '../../lib/content';
 
 export function getStaticPaths() {
@@ -27,7 +28,7 @@ const briefing = articles
   title={`${gallery.title} — ${gallery.medium}`}
   description={gallery.description}
 >
-  <div class="room measure">
+  <div class="room measure" data-research-revision={isResearch ? researchRevision : undefined}>
     <hr />
 
     <header class="hero">
