@@ -1,5 +1,5 @@
 /**
- * The site's eight sections.
+ * The site's sections.
  *
  * Each section is a domain of curiosity. `medium` is a short kind / format label
  * shown in listings and article headers. `aspect` varies deliberately so the
@@ -7,6 +7,7 @@
  */
 
 export const GALLERY_SLUGS = [
+  'research',
   'systems',
   'photography',
   'nature',
@@ -35,6 +36,22 @@ export interface Gallery {
 }
 
 export const galleries: readonly Gallery[] = [
+  {
+    slug: 'research',
+    title: 'Research',
+    medium: 'Reading Notes',
+    tagline: 'Useful ideas, with a trail back to the source.',
+    description:
+      'Papers and technical writing on information retrieval, agent design, context engineering, semantic systems, and observability — summarized for a quick listen before a deeper read.',
+    topics: [
+      'Information retrieval',
+      'Agent design',
+      'Context engineering',
+      'Semantic systems',
+      'Observability',
+    ],
+    aspect: '5 / 4',
+  },
   {
     slug: 'systems',
     title: 'Systems',

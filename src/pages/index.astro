@@ -10,7 +10,7 @@ import {
   tagSlug,
 } from '../lib/content';
 
-const articles = await getArticles();
+const articles = (await getArticles()).filter((article) => article.data.gallery !== 'research');
 const topics = [...new Set(articles.flatMap((article) => article.data.tags))]
   .map((tag) => ({
     name: tag,

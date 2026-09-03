@@ -24,8 +24,9 @@ request immediately or leave it open for review.
    page connected to the integration. The URL must contain the page's 32-character ID.
 3. In the GitHub mobile app or mobile site, open this repository, choose **Actions → Publish a
    Notion article → Run workflow**, and paste the link.
-4. Add comma-separated tags and choose a section. Leave **Merge after validation** on to publish as
-   soon as the checks pass, or turn it off to review the pull request first.
+4. Add comma-separated tags and choose a section. Choose **research** for reading notes; their
+   summaries are included in the Research page's audio briefing. Leave **Merge after validation**
+   on to publish as soon as the checks pass, or turn it off to review the pull request first.
 
 Netlify deploys after the pull request reaches the main branch. The original Notion page is not
 changed or deleted.

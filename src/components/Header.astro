@@ -4,6 +4,7 @@ const isHome = path === '/';
 
 const links = [
   { href: '/', label: 'Blog' },
+  { href: '/galleries/research/', label: 'Research' },
   { href: '/photos/', label: 'Photos' },
   { href: '/about/', label: 'About' },
 ];
@@ -95,7 +96,7 @@ const isCurrent = (href: string) =>
     }
   }
 
-  @media (max-width: 430px) {
+  @media (max-width: 560px) {
     .site-header {
       align-items: flex-start;
       flex-direction: column;
