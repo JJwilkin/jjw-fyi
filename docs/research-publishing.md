@@ -4,11 +4,18 @@ The daily Codex task uses the `research-radar` skill to select four readings abo
 and observability. Its CSV ledger is the discovery and deduplication record; the website remains a
 static Astro site whose published source of truth is Markdown in `src/content/articles`.
 
-The publisher runs `npm run readings:audio -- --date YYYY-MM-DD` with `OPENAI_API_KEY` set. This
-generates a Marin-voice MP3 for every reading summary and a combined daily briefing under
+The publisher runs `npm run readings:audio -- --date YYYY-MM-DD`. A local Kokoro model generates an
+MP3 for every reading summary and a combined daily briefing under
 `public/audio/readings/YYYY-MM-DD`. The generated files are committed with the reading notes, so
-the deployed site never receives the API key or makes a runtime API request. Pages fall back to
-the browser's built-in speech voice when an MP3 is unavailable.
+the deployed site does not need a backend, account, API key, or runtime model download. Pages fall
+back to the browser's built-in speech voice when an MP3 is unavailable.
+
+Audio generation requires `uv` and `ffmpeg`. The Python environment is pinned in
+`scripts/synthesize-reading-audio.py`; `uv` provisions it automatically. On the first run, the
+script downloads the quantized Kokoro model and voice pack, verifies their published SHA-256
+digests, and caches them under the operating system's user cache directory. Later runs reuse that
+cache. Set `KOKORO_CACHE_DIR` only when the publisher needs a different cache location.
+The `kokoro-onnx` runtime is MIT-licensed and the Kokoro model is Apache-2.0-licensed.
 
 For each newly selected source, the task creates one article with `gallery: research`, a concise
 spoken summary, the canonical source link, relevance to observability agents, a design question,

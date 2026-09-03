@@ -25,7 +25,7 @@ test('creates the complete daily and article audio plan', () => {
   ]);
 });
 
-test('generates every complete audio file with the configured voice', async () => {
+test('sends every complete audio job to the local synthesizer', async () => {
   const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'jjw-reading-audio-'));
   const articles = path.join(temporaryDirectory, 'articles');
   const audio = path.join(temporaryDirectory, 'audio');
@@ -38,10 +38,12 @@ test('generates every complete audio file with the configured voice', async () =
     path.join(articles, 'ignored.md'),
     '---\ntitle: Other writing\ngallery: writing\ndate: 2026-09-02\nsummary: Not a reading.\ndraft: false\n---\n',
   );
-  const requests = [];
-  const request = async (url, options) => {
-    requests.push({ url, options: { ...options, headers: { ...options.headers } } });
-    return new Response(Uint8Array.from([requests.length]));
+  const synthesisCalls = [];
+  const synthesize = async (jobs, destination) => {
+    synthesisCalls.push({ jobs, destination });
+    for (const [index, job] of jobs.entries()) {
+      await writeFile(path.join(destination, job.filename), Uint8Array.from([index + 1]));
+    }
   };
 
   try {
@@ -49,8 +51,7 @@ test('generates every complete audio file with the configured voice', async () =
       articleDirectory: articles,
       audioDirectory: audio,
       date: '2026-09-02',
-      apiKey: 'test-key',
-      request,
+      synthesize,
     });
     assert.deepEqual(result, {
       date: '2026-09-02',
@@ -58,44 +59,17 @@ test('generates every complete audio file with the configured voice', async () =
       skipped: [],
     });
     assert.deepEqual(
-      requests.map(({ url, options }) => ({
-        url,
-        method: options.method,
-        headers: options.headers,
-        body: JSON.parse(options.body),
-      })),
+      synthesisCalls,
       [
         {
-          url: 'https://api.openai.com/v1/audio/speech',
-          method: 'POST',
-          headers: {
-            Authorization: 'Bearer test-key',
-            'Content-Type': 'application/json',
-          },
-          body: {
-            model: 'gpt-4o-mini-tts',
-            voice: 'marin',
-            input: 'Readings for 2 September 2026.\n\nFirst reading. The first summary.',
-            instructions:
-              'Narrate this as a warm, thoughtful private research briefing. Use natural conversational pacing and intonation, with gentle emphasis and a brief pause between the title and summary. Avoid an announcer voice.',
-            response_format: 'mp3',
-          },
-        },
-        {
-          url: 'https://api.openai.com/v1/audio/speech',
-          method: 'POST',
-          headers: {
-            Authorization: 'Bearer test-key',
-            'Content-Type': 'application/json',
-          },
-          body: {
-            model: 'gpt-4o-mini-tts',
-            voice: 'marin',
-            input: 'First reading. The first summary.',
-            instructions:
-              'Narrate this as a warm, thoughtful private research briefing. Use natural conversational pacing and intonation, with gentle emphasis and a brief pause between the title and summary. Avoid an announcer voice.',
-            response_format: 'mp3',
-          },
+          jobs: [
+            {
+              filename: 'briefing.mp3',
+              input: 'Readings for 2 September 2026.\n\nFirst reading. The first summary.',
+            },
+            { filename: 'first.mp3', input: 'First reading. The first summary.' },
+          ],
+          destination: path.join(audio, '2026-09-02'),
         },
       ],
     );

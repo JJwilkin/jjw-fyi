@@ -1,14 +1,13 @@
-import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { mkdir, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 
 const ARTICLE_DIRECTORY = path.resolve('src/content/articles');
 const AUDIO_DIRECTORY = path.resolve('public/audio/readings');
-const SPEECH_API = 'https://api.openai.com/v1/audio/speech';
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const VOICE_INSTRUCTIONS =
-  'Narrate this as a warm, thoughtful private research briefing. Use natural conversational pacing and intonation, with gentle emphasis and a brief pause between the title and summary. Avoid an announcer voice.';
+const SYNTHESIZER = fileURLToPath(new URL('./synthesize-reading-audio.py', import.meta.url));
 
 function splitArticle(source) {
   const match = source.match(/^---\r?\n([\s\S]*?)\r?\n---/);
@@ -70,43 +69,43 @@ async function readingsForDate(articleDirectory, date) {
   return readings;
 }
 
-async function requestSpeech(input, apiKey, request) {
-  const response = await request(SPEECH_API, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini-tts',
-      voice: 'marin',
-      input,
-      instructions: VOICE_INSTRUCTIONS,
-      response_format: 'mp3',
-    }),
+async function runKokoro(jobs, destination) {
+  await new Promise((resolve, reject) => {
+    const child = spawn('uv', ['run', SYNTHESIZER], {
+      stdio: ['pipe', 'inherit', 'inherit'],
+    });
+    child.on('error', (error) => {
+      reject(
+        error.code === 'ENOENT'
+          ? new Error('Install uv before generating reading audio: https://docs.astral.sh/uv/')
+          : error,
+      );
+    });
+    child.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`Kokoro speech generation exited with status ${code}.`));
+    });
+    child.stdin.on('error', (error) => {
+      if (error.code !== 'EPIPE') reject(error);
+    });
+    child.stdin.end(JSON.stringify({ destination, jobs }));
   });
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`OpenAI speech generation failed (${response.status}): ${detail}`);
-  }
-  return Buffer.from(await response.arrayBuffer());
 }
 
 export async function generateReadingAudioAt({
   articleDirectory,
   audioDirectory,
   date,
-  apiKey,
   force = false,
-  request = fetch,
+  synthesize = runKokoro,
 }) {
-  if (!apiKey) throw new Error('Set OPENAI_API_KEY before generating reading audio.');
   const jobs = createReadingAudioPlan(date, await readingsForDate(articleDirectory, date));
   const destination = path.join(audioDirectory, date);
   await mkdir(destination, { recursive: true });
   const generated = [];
   const skipped = [];
 
+  const pending = [];
   for (const job of jobs) {
     const output = path.join(destination, job.filename);
     if (!force) {
@@ -119,17 +118,11 @@ export async function generateReadingAudioAt({
       }
     }
 
-    const temporaryOutput = `${output}.tmp`;
-    const audio = await requestSpeech(job.input, apiKey, request);
-    try {
-      await writeFile(temporaryOutput, audio);
-      await rename(temporaryOutput, output);
-    } catch (error) {
-      await unlink(temporaryOutput).catch(() => {});
-      throw error;
-    }
+    pending.push(job);
     generated.push(job.filename);
   }
+
+  if (pending.length > 0) await synthesize(pending, destination);
 
   return { date, generated, skipped };
 }
@@ -147,7 +140,6 @@ async function main() {
     articleDirectory: ARTICLE_DIRECTORY,
     audioDirectory: AUDIO_DIRECTORY,
     date,
-    apiKey: process.env.OPENAI_API_KEY,
     force,
   });
   console.log(
