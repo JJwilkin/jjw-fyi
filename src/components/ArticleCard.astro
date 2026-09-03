@@ -7,18 +7,21 @@ interface Props {
   gallery: Gallery | undefined;
   /** Show the section name (useful when cards mix sections, e.g. connections). */
   showSection?: boolean;
+  /** Show the article summary (useful for reading-list cards). */
+  showSummary?: boolean;
 }
 
-const { entry, gallery, showSection = false } = Astro.props;
-const { title, medium, date } = entry.data;
+const { entry, gallery, showSection = false, showSummary = false } = Astro.props;
+const { title, medium, date, summary } = entry.data;
 ---
 
 <a class="card" href={articleUrl(entry)}>
   <h3 class="card__title">{title}</h3>
-  <p class="card__meta">
+  <p class:list={{ card__meta: true, 'card__meta--with-summary': showSummary }}>
     <time datetime={isoDate(date)}>{formatMonthYear(date)}</time>
     &nbsp;│ {showSection && gallery ? gallery.title.toLowerCase() : medium.toLowerCase()}
   </p>
+  {showSummary && <p class="card__summary">{summary}</p>}
 </a>
 
 <style>
@@ -39,5 +42,18 @@ const { title, medium, date } = entry.data;
     color: var(--ink-secondary);
     font-size: 0.9rem;
     line-height: 1.4;
+  }
+
+  .card__meta--with-summary {
+    margin-bottom: 0;
+  }
+
+  .card__summary {
+    max-width: 58ch;
+    margin: 0.6rem 0 1.75rem;
+    color: var(--ink-secondary);
+    font-size: 1rem;
+    font-weight: 300;
+    line-height: 1.6;
   }
 </style>

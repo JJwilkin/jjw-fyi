@@ -17,6 +17,10 @@ interface Props {
 
 const { gallery } = Astro.props;
 const articles = await getArticlesByGallery(gallery.slug);
+const isResearch = gallery.slug === 'research';
+const briefing = articles
+  .map((entry) => `${entry.data.title}. ${entry.data.summary}`)
+  .join('\n\n');
 ---
 
 <BaseLayout
@@ -31,17 +35,36 @@ const articles = await getArticlesByGallery(gallery.slug);
       <p>{gallery.description}</p>
     </header>
 
+    {
+      isResearch && articles.length > 0 && (
+        <div class="briefing">
+          <div>
+            <p class="briefing__eyebrow">Audio briefing</p>
+            <p class="briefing__copy">Hear every summary, then choose what deserves a closer read.</p>
+          </div>
+          <button type="button" data-briefing data-briefing-text={briefing}>
+            <span aria-hidden="true" data-briefing-icon>▶</span>
+            <span data-briefing-label>Listen</span>
+          </button>
+          <p class="sr-only" aria-live="polite" data-briefing-status></p>
+        </div>
+      )
+    }
+
     <section aria-labelledby="articles-title">
-      <h2 id="articles-title">posts</h2>
+      <h2 id="articles-title">{isResearch ? 'readings' : 'posts'}</h2>
       {
         articles.length > 0 ? (
           <div class="holdings">
             {articles.map((entry) => (
-              <ArticleCard entry={entry} gallery={gallery} />
+              <ArticleCard entry={entry} gallery={gallery} showSummary={isResearch} />
             ))}
           </div>
         ) : (
-          <p>Nothing here yet. Head back <a href="/">home</a>.</p>
+          <p>
+            {isResearch ? 'Reading notes will appear here soon.' : 'Nothing here yet.'}
+            {' '}Head back <a href="/">home</a>.
+          </p>
         )
       }
     </section>
@@ -49,6 +72,56 @@ const articles = await getArticlesByGallery(gallery.slug);
     <p class="room__back"><a href="/">← All posts</a></p>
   </div>
 </BaseLayout>
+
+<script is:inline>
+  function bindBriefing() {
+    const button = document.querySelector('[data-briefing]');
+    if (!(button instanceof HTMLButtonElement) || button.dataset.bound === 'true') return;
+    button.dataset.bound = 'true';
+
+    const label = button.querySelector('[data-briefing-label]');
+    const icon = button.querySelector('[data-briefing-icon]');
+    const status = document.querySelector('[data-briefing-status]');
+    const canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+
+    function reset(message = '') {
+      button.dataset.playing = 'false';
+      if (label) label.textContent = 'Listen';
+      if (icon) icon.textContent = '▶';
+      if (status) status.textContent = message;
+    }
+
+    if (!canSpeak) {
+      button.disabled = true;
+      reset('Audio briefings are not supported by this browser.');
+      return;
+    }
+
+    button.addEventListener('click', () => {
+      if (button.dataset.playing === 'true') {
+        window.speechSynthesis.cancel();
+        reset('Briefing stopped.');
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(button.dataset.briefingText ?? '');
+      utterance.rate = 0.96;
+      utterance.onend = () => reset('Briefing finished.');
+      utterance.onerror = () => reset('The briefing could not be played.');
+
+      window.speechSynthesis.cancel();
+      button.dataset.playing = 'true';
+      if (label) label.textContent = 'Stop';
+      if (icon) icon.textContent = '■';
+      if (status) status.textContent = 'Playing the research briefing.';
+      window.speechSynthesis.speak(utterance);
+    });
+  }
+
+  document.addEventListener('astro:page-load', bindBriefing);
+  document.addEventListener('astro:before-swap', () => window.speechSynthesis?.cancel());
+  bindBriefing();
+</script>
 
 <style>
   .room > hr {
@@ -63,7 +136,76 @@ const articles = await getArticlesByGallery(gallery.slug);
     margin-bottom: 1.75rem;
   }
 
+  .briefing {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 1rem 1.1rem;
+    border-block: 1px solid var(--blue-pale);
+    background: var(--paper-sunk);
+  }
+
+  .briefing p {
+    margin: 0;
+  }
+
+  .briefing__eyebrow {
+    color: var(--blue);
+    font-family: var(--font-ui);
+    font-size: 0.625rem;
+    letter-spacing: 0.16em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .briefing__copy {
+    margin-top: 0.35rem !important;
+    color: var(--ink-secondary);
+    font-size: 0.95rem;
+    font-weight: 300;
+    line-height: 1.45;
+  }
+
+  .briefing button {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    gap: 0.55rem;
+    min-width: 6.5rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--blue);
+    background: var(--paper-raised);
+    color: var(--blue-deep);
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  .briefing button:hover {
+    background: var(--paper);
+  }
+
+  .briefing button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
   .room__back {
     margin-top: 1.75rem;
+  }
+
+  @media (max-width: 560px) {
+    .briefing {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .briefing button {
+      justify-content: center;
+      width: 100%;
+      min-height: 2.75rem;
+    }
   }
 </style>

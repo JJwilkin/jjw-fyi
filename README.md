@@ -22,6 +22,10 @@ merge it automatically so Netlify publishes the new revision.
 Use the **Remove an article** workflow with an article slug or full article URL to remove a post.
 Both workflows use repository pull requests as the publishing and authorization boundary.
 
+The daily research task follows the same model: it writes selected readings as Markdown in the
+`research` gallery, opens a pull request, waits for the **Validate site** check, and merges only
+after that check passes. Research notes stay out of the main Blog feed and appear under Research.
+
 ## Useful commands
 
 | Command | Purpose |

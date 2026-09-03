@@ -8,8 +8,9 @@ const ARTICLE_DIRECTORY = path.resolve('src/content/articles');
 const IMAGE_DIRECTORY = path.resolve('public/images/articles');
 const NOTION_API = 'https://api.notion.com/v1';
 const NOTION_VERSION = '2026-03-11';
-const GALLERIES = new Set([
-  'systems', 'photography', 'nature', 'philosophy', 'projects', 'writing', 'travel', 'field-notes',
+export const GALLERIES = new Set([
+  'research', 'systems', 'photography', 'nature', 'philosophy', 'projects', 'writing', 'travel',
+  'field-notes',
 ]);
 
 export function notionPageIdFromUrl(value) {

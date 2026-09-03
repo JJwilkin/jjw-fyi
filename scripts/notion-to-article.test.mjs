@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  GALLERIES,
   createArticleSource,
   markdownSummary,
   normalizeNotionMarkdown,
@@ -9,6 +10,20 @@ import {
   rewriteMarkdownImages,
   slugify,
 } from './notion-to-article.mjs';
+
+test('accepts every complete article gallery', () => {
+  assert.deepEqual([...GALLERIES], [
+    'research',
+    'systems',
+    'photography',
+    'nature',
+    'philosophy',
+    'projects',
+    'writing',
+    'travel',
+    'field-notes',
+  ]);
+});
 
 test('extracts and normalizes a Notion page ID from a shared URL', () => {
   assert.equal(
