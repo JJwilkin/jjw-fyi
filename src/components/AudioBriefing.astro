@@ -17,7 +17,7 @@ const { text, description, src } = Astro.props;
     src ? (
       <div class="briefing__player">
         <audio controls preload="metadata" src={src} aria-label="AI-generated audio briefing" />
-        <p class="briefing__disclosure">AI-generated voice · Not a human recording</p>
+        <p class="briefing__disclosure">Generated locally with Kokoro · Open model</p>
       </div>
     ) : (
       <>
