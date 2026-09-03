@@ -5,6 +5,7 @@ import AudioBriefing from '../../components/AudioBriefing.astro';
 import { galleries, type Gallery } from '../../data/galleries';
 import { researchRevision } from '../../data/researchRevision';
 import { formatFullDate, getArticlesByGallery, isoDate } from '../../lib/content';
+import { readingAudioUrl } from '../../lib/readingAudio';
 
 export function getStaticPaths() {
   return galleries.map((gallery) => ({
@@ -29,6 +30,7 @@ const readingDays = isResearch
         briefing: entries
           .map((entry) => `${entry.data.title}. ${entry.data.summary}`)
           .join('\n\n'),
+        audio: readingAudioUrl(date),
       }),
     )
   : [];
@@ -59,6 +61,7 @@ const readingDays = isResearch
                   </h3>
                   <AudioBriefing
                     text={day.briefing}
+                    src={day.audio}
                     description={`Hear this day's ${day.entries.length} reading ${day.entries.length === 1 ? 'summary' : 'summaries'}, then choose what deserves a closer read.`}
                   />
                   <div class="holdings">

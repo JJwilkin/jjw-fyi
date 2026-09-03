@@ -19,6 +19,7 @@ jobs:
 
       - run: npm ci
       - run: npm run test:notion
+      - run: npm run test:reading-audio
       - run: npm run test:remove-article
       - run: npm run check
       - run: npm run build

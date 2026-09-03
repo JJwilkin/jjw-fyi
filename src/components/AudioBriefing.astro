@@ -2,9 +2,10 @@
 interface Props {
   text: string;
   description: string;
+  src?: string;
 }
 
-const { text, description } = Astro.props;
+const { text, description, src } = Astro.props;
 ---
 
 <div class="briefing" data-audio-briefing>
@@ -12,16 +13,28 @@ const { text, description } = Astro.props;
     <p class="briefing__eyebrow">Audio briefing</p>
     <p class="briefing__copy">{description}</p>
   </div>
-  <button type="button" data-briefing-button data-briefing-text={text}>
-    <span aria-hidden="true" data-briefing-icon>▶</span>
-    <span data-briefing-label>Listen</span>
-  </button>
-  <p class="sr-only" aria-live="polite" data-briefing-status></p>
+  {
+    src ? (
+      <div class="briefing__player">
+        <audio controls preload="metadata" src={src} aria-label="AI-generated audio briefing" />
+        <p class="briefing__disclosure">AI-generated voice · Not a human recording</p>
+      </div>
+    ) : (
+      <>
+        <button type="button" data-briefing-button data-briefing-text={text}>
+          <span aria-hidden="true" data-briefing-icon>▶</span>
+          <span data-briefing-label>Listen</span>
+        </button>
+        <p class="sr-only" aria-live="polite" data-briefing-status />
+      </>
+    )
+  }
 </div>
 
 <script>
   const briefingRoots = () =>
     document.querySelectorAll<HTMLElement>('[data-audio-briefing]');
+  const audioPlayers = () => document.querySelectorAll<HTMLAudioElement>('[data-audio-briefing] audio');
 
   function resetBriefing(root: HTMLElement, message = '') {
     const button = root.querySelector<HTMLButtonElement>('[data-briefing-button]');
@@ -37,6 +50,17 @@ const { text, description } = Astro.props;
 
   function bindBriefings() {
     for (const root of briefingRoots()) {
+      const audio = root.querySelector<HTMLAudioElement>('audio');
+      if (audio && audio.dataset.bound !== 'true') {
+        audio.dataset.bound = 'true';
+        audio.addEventListener('play', () => {
+          window.speechSynthesis?.cancel();
+          for (const otherAudio of audioPlayers()) {
+            if (otherAudio !== audio) otherAudio.pause();
+          }
+        });
+      }
+
       const button = root.querySelector<HTMLButtonElement>('[data-briefing-button]');
       if (!button || button.dataset.bound === 'true') continue;
       button.dataset.bound = 'true';
@@ -56,6 +80,7 @@ const { text, description } = Astro.props;
         }
 
         window.speechSynthesis.cancel();
+        for (const audio of audioPlayers()) audio.pause();
         for (const otherRoot of briefingRoots()) resetBriefing(otherRoot);
 
         const utterance = new SpeechSynthesisUtterance(button.dataset.briefingText ?? '');
@@ -138,6 +163,27 @@ const { text, description } = Astro.props;
     opacity: 0.55;
   }
 
+  .briefing__player {
+    flex: none;
+    width: min(100%, 19rem);
+  }
+
+  .briefing__player audio {
+    display: block;
+    width: 100%;
+    height: 2.5rem;
+  }
+
+  .briefing__disclosure {
+    margin-top: 0.35rem !important;
+    color: var(--ink-faint);
+    font-family: var(--font-ui);
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    text-align: right;
+    text-transform: uppercase;
+  }
+
   @media (max-width: 560px) {
     .briefing {
       align-items: stretch;
@@ -148,6 +194,14 @@ const { text, description } = Astro.props;
       justify-content: center;
       width: 100%;
       min-height: 2.75rem;
+    }
+
+    .briefing__player {
+      width: 100%;
+    }
+
+    .briefing__disclosure {
+      text-align: left;
     }
   }
 </style>

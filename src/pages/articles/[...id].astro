@@ -12,6 +12,7 @@ import {
   resolveConnections,
   tagSlug,
 } from '../../lib/content';
+import { readingAudioUrl } from '../../lib/readingAudio';
 
 export async function getStaticPaths() {
   const articles = await getArticles();
@@ -29,6 +30,7 @@ const connections = resolveConnections(entry, all);
 const contents = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
 const tags =
   entry.data.tags.length > 0 ? entry.data.tags : [gallery?.title ?? entry.data.medium];
+const articleAudio = readingAudioUrl(isoDate(entry.data.date), entry.id);
 ---
 
 <BaseLayout title={entry.data.title} description={entry.data.summary} type="article">
@@ -55,6 +57,7 @@ const tags =
           gallery?.slug === 'research' && (
             <AudioBriefing
               text={`${entry.data.title}. ${entry.data.summary}`}
+              src={articleAudio}
               description="Hear the summary before deciding whether to read the full note."
             />
           )
