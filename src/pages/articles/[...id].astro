@@ -1,6 +1,7 @@
 ---
 import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import AudioBriefing from '../../components/AudioBriefing.astro';
 import Connections from '../../components/Connections.astro';
 import { getGallery } from '../../data/galleries';
 import {
@@ -49,6 +50,15 @@ const tags =
         </div>
         <h1>{entry.data.title}</h1>
         <p class="article__dek">{entry.data.summary}</p>
+
+        {
+          gallery?.slug === 'research' && (
+            <AudioBriefing
+              text={`${entry.data.title}. ${entry.data.summary}`}
+              description="Hear the summary before deciding whether to read the full note."
+            />
+          )
+        }
 
         <div class="prose article__body">
           <Content />

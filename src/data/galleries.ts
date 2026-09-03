@@ -38,7 +38,7 @@ export interface Gallery {
 export const galleries: readonly Gallery[] = [
   {
     slug: 'research',
-    title: 'Research',
+    title: 'Readings',
     medium: 'Reading Notes',
     tagline: 'Useful ideas, with a trail back to the source.',
     description:

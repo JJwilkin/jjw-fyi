@@ -1,0 +1,153 @@
+---
+interface Props {
+  text: string;
+  description: string;
+}
+
+const { text, description } = Astro.props;
+---
+
+<div class="briefing" data-audio-briefing>
+  <div>
+    <p class="briefing__eyebrow">Audio briefing</p>
+    <p class="briefing__copy">{description}</p>
+  </div>
+  <button type="button" data-briefing-button data-briefing-text={text}>
+    <span aria-hidden="true" data-briefing-icon>▶</span>
+    <span data-briefing-label>Listen</span>
+  </button>
+  <p class="sr-only" aria-live="polite" data-briefing-status></p>
+</div>
+
+<script>
+  const briefingRoots = () =>
+    document.querySelectorAll<HTMLElement>('[data-audio-briefing]');
+
+  function resetBriefing(root: HTMLElement, message = '') {
+    const button = root.querySelector<HTMLButtonElement>('[data-briefing-button]');
+    const label = root.querySelector<HTMLElement>('[data-briefing-label]');
+    const icon = root.querySelector<HTMLElement>('[data-briefing-icon]');
+    const status = root.querySelector<HTMLElement>('[data-briefing-status]');
+
+    if (button) button.dataset.playing = 'false';
+    if (label) label.textContent = 'Listen';
+    if (icon) icon.textContent = '▶';
+    if (status) status.textContent = message;
+  }
+
+  function bindBriefings() {
+    for (const root of briefingRoots()) {
+      const button = root.querySelector<HTMLButtonElement>('[data-briefing-button]');
+      if (!button || button.dataset.bound === 'true') continue;
+      button.dataset.bound = 'true';
+
+      const canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+      if (!canSpeak) {
+        button.disabled = true;
+        resetBriefing(root, 'Audio briefings are not supported by this browser.');
+        continue;
+      }
+
+      button.addEventListener('click', () => {
+        if (button.dataset.playing === 'true') {
+          window.speechSynthesis.cancel();
+          resetBriefing(root, 'Briefing stopped.');
+          return;
+        }
+
+        window.speechSynthesis.cancel();
+        for (const otherRoot of briefingRoots()) resetBriefing(otherRoot);
+
+        const utterance = new SpeechSynthesisUtterance(button.dataset.briefingText ?? '');
+        const label = root.querySelector<HTMLElement>('[data-briefing-label]');
+        const icon = root.querySelector<HTMLElement>('[data-briefing-icon]');
+        const status = root.querySelector<HTMLElement>('[data-briefing-status]');
+
+        utterance.rate = 0.96;
+        utterance.onend = () => resetBriefing(root, 'Briefing finished.');
+        utterance.onerror = () => resetBriefing(root, 'The briefing could not be played.');
+
+        button.dataset.playing = 'true';
+        if (label) label.textContent = 'Stop';
+        if (icon) icon.textContent = '■';
+        if (status) status.textContent = 'Playing the audio briefing.';
+        window.speechSynthesis.speak(utterance);
+      });
+    }
+  }
+
+  document.addEventListener('astro:page-load', bindBriefings);
+  document.addEventListener('astro:before-swap', () => window.speechSynthesis?.cancel());
+  bindBriefings();
+</script>
+
+<style>
+  .briefing {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 1rem 1.1rem;
+    border-block: 1px solid var(--blue-pale);
+    background: var(--paper-sunk);
+  }
+
+  .briefing p {
+    margin: 0;
+  }
+
+  .briefing__eyebrow {
+    color: var(--blue);
+    font-family: var(--font-ui);
+    font-size: 0.625rem;
+    letter-spacing: 0.16em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .briefing__copy {
+    margin-top: 0.35rem !important;
+    color: var(--ink-secondary);
+    font-size: 0.95rem;
+    font-weight: 300;
+    line-height: 1.45;
+  }
+
+  .briefing button {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    gap: 0.55rem;
+    min-width: 6.5rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--blue);
+    background: var(--paper-raised);
+    color: var(--blue-deep);
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  .briefing button:hover {
+    background: var(--paper);
+  }
+
+  .briefing button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  @media (max-width: 560px) {
+    .briefing {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .briefing button {
+      justify-content: center;
+      width: 100%;
+      min-height: 2.75rem;
+    }
+  }
+</style>

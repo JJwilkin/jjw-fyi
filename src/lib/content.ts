@@ -27,6 +27,7 @@ const FULL_DATE = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'long',
   year: 'numeric',
+  timeZone: 'UTC',
 });
 
 const twoDigits = (value: number): string => String(value).padStart(2, '0');

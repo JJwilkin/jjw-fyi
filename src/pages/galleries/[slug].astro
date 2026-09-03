@@ -1,9 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ArticleCard from '../../components/ArticleCard.astro';
+import AudioBriefing from '../../components/AudioBriefing.astro';
 import { galleries, type Gallery } from '../../data/galleries';
 import { researchRevision } from '../../data/researchRevision';
-import { getArticlesByGallery } from '../../lib/content';
+import { formatFullDate, getArticlesByGallery, isoDate } from '../../lib/content';
 
 export function getStaticPaths() {
   return galleries.map((gallery) => ({
@@ -19,9 +20,18 @@ interface Props {
 const { gallery } = Astro.props;
 const articles = await getArticlesByGallery(gallery.slug);
 const isResearch = gallery.slug === 'research';
-const briefing = articles
-  .map((entry) => `${entry.data.title}. ${entry.data.summary}`)
-  .join('\n\n');
+const readingDays = isResearch
+  ? [...Map.groupBy(articles, (entry) => isoDate(entry.data.date))].map(
+      ([date, entries]) => ({
+        date,
+        entries,
+        label: formatFullDate(entries[0].data.date),
+        briefing: entries
+          .map((entry) => `${entry.data.title}. ${entry.data.summary}`)
+          .join('\n\n'),
+      }),
+    )
+  : [];
 ---
 
 <BaseLayout
@@ -36,31 +46,36 @@ const briefing = articles
       <p>{gallery.description}</p>
     </header>
 
-    {
-      isResearch && articles.length > 0 && (
-        <div class="briefing">
-          <div>
-            <p class="briefing__eyebrow">Audio briefing</p>
-            <p class="briefing__copy">Hear every summary, then choose what deserves a closer read.</p>
-          </div>
-          <button type="button" data-briefing data-briefing-text={briefing}>
-            <span aria-hidden="true" data-briefing-icon>▶</span>
-            <span data-briefing-label>Listen</span>
-          </button>
-          <p class="sr-only" aria-live="polite" data-briefing-status></p>
-        </div>
-      )
-    }
-
     <section aria-labelledby="articles-title">
-      <h2 id="articles-title">{isResearch ? 'readings' : 'posts'}</h2>
+      <h2 id="articles-title">{isResearch ? 'daily briefings' : 'posts'}</h2>
       {
         articles.length > 0 ? (
-          <div class="holdings">
-            {articles.map((entry) => (
-              <ArticleCard entry={entry} gallery={gallery} showSummary={isResearch} />
-            ))}
-          </div>
+          isResearch ? (
+            <div class="reading-days">
+              {readingDays.map((day) => (
+                <section class="reading-day" aria-labelledby={`readings-${day.date}`}>
+                  <h3 id={`readings-${day.date}`} class="reading-day__date">
+                    <time datetime={day.date}>{day.label}</time>
+                  </h3>
+                  <AudioBriefing
+                    text={day.briefing}
+                    description={`Hear this day's ${day.entries.length} reading ${day.entries.length === 1 ? 'summary' : 'summaries'}, then choose what deserves a closer read.`}
+                  />
+                  <div class="holdings">
+                    {day.entries.map((entry) => (
+                      <ArticleCard entry={entry} gallery={gallery} showSummary />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div class="holdings">
+              {articles.map((entry) => (
+                <ArticleCard entry={entry} gallery={gallery} />
+              ))}
+            </div>
+          )
         ) : (
           <p>
             {isResearch ? 'Reading notes will appear here soon.' : 'Nothing here yet.'}
@@ -73,56 +88,6 @@ const briefing = articles
     <p class="room__back"><a href="/">← All posts</a></p>
   </div>
 </BaseLayout>
-
-<script is:inline>
-  function bindBriefing() {
-    const button = document.querySelector('[data-briefing]');
-    if (!(button instanceof HTMLButtonElement) || button.dataset.bound === 'true') return;
-    button.dataset.bound = 'true';
-
-    const label = button.querySelector('[data-briefing-label]');
-    const icon = button.querySelector('[data-briefing-icon]');
-    const status = document.querySelector('[data-briefing-status]');
-    const canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
-
-    function reset(message = '') {
-      button.dataset.playing = 'false';
-      if (label) label.textContent = 'Listen';
-      if (icon) icon.textContent = '▶';
-      if (status) status.textContent = message;
-    }
-
-    if (!canSpeak) {
-      button.disabled = true;
-      reset('Audio briefings are not supported by this browser.');
-      return;
-    }
-
-    button.addEventListener('click', () => {
-      if (button.dataset.playing === 'true') {
-        window.speechSynthesis.cancel();
-        reset('Briefing stopped.');
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(button.dataset.briefingText ?? '');
-      utterance.rate = 0.96;
-      utterance.onend = () => reset('Briefing finished.');
-      utterance.onerror = () => reset('The briefing could not be played.');
-
-      window.speechSynthesis.cancel();
-      button.dataset.playing = 'true';
-      if (label) label.textContent = 'Stop';
-      if (icon) icon.textContent = '■';
-      if (status) status.textContent = 'Playing the research briefing.';
-      window.speechSynthesis.speak(utterance);
-    });
-  }
-
-  document.addEventListener('astro:page-load', bindBriefing);
-  document.addEventListener('astro:before-swap', () => window.speechSynthesis?.cancel());
-  bindBriefing();
-</script>
 
 <style>
   .room > hr {
@@ -137,76 +102,23 @@ const briefing = articles
     margin-bottom: 1.75rem;
   }
 
-  .briefing {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-    padding: 1rem 1.1rem;
-    border-block: 1px solid var(--blue-pale);
-    background: var(--paper-sunk);
+  .reading-day + .reading-day {
+    margin-top: 3.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--blue-pale);
   }
 
-  .briefing p {
-    margin: 0;
-  }
-
-  .briefing__eyebrow {
-    color: var(--blue);
-    font-family: var(--font-ui);
-    font-size: 0.625rem;
-    letter-spacing: 0.16em;
-    line-height: 1;
-    text-transform: uppercase;
-  }
-
-  .briefing__copy {
-    margin-top: 0.35rem !important;
-    color: var(--ink-secondary);
-    font-size: 0.95rem;
-    font-weight: 300;
-    line-height: 1.45;
-  }
-
-  .briefing button {
-    display: inline-flex;
-    align-items: center;
-    flex: none;
-    gap: 0.55rem;
-    min-width: 6.5rem;
-    padding: 0.65rem 0.8rem;
-    border: 1px solid var(--blue);
-    background: var(--paper-raised);
+  .reading-day__date {
+    margin: 0 0 1rem;
     color: var(--blue-deep);
     font-family: var(--font-ui);
     font-size: 0.75rem;
-    cursor: pointer;
-  }
-
-  .briefing button:hover {
-    background: var(--paper);
-  }
-
-  .briefing button:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 
   .room__back {
     margin-top: 1.75rem;
-  }
-
-  @media (max-width: 560px) {
-    .briefing {
-      align-items: stretch;
-      flex-direction: column;
-    }
-
-    .briefing button {
-      justify-content: center;
-      width: 100%;
-      min-height: 2.75rem;
-    }
   }
 </style>
