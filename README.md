@@ -25,6 +25,7 @@ Both workflows use repository pull requests as the publishing and authorization 
 The daily research task follows the same model: it writes selected readings as Markdown in the
 `research` gallery, opens a pull request, waits for the **Validate site** check, and merges only
 after that check passes. Research notes stay out of the main Blog feed and appear under Research.
+See [docs/research-publishing.md](docs/research-publishing.md) for the complete publication contract.
 
 ## Useful commands
 
