@@ -11,8 +11,10 @@
     "preview": "astro preview",
     "check": "astro check",
     "test:notion": "node --test scripts/notion-to-article.test.mjs",
+    "test:reading-audio": "node --test scripts/generate-reading-audio.test.mjs",
     "test:remove-article": "node --test scripts/remove-article.test.mjs",
     "import:notion": "node scripts/notion-to-article.mjs",
+    "readings:audio": "node scripts/generate-reading-audio.mjs",
     "astro": "astro"
   },
   "dependencies": {
